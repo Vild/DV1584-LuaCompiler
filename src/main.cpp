@@ -5,7 +5,7 @@
 
 #include <fstream>
 
-//Node root;
+ast::RootNodePtr root;
 yy::location loc;
 
 extern FILE* yyin;
@@ -29,14 +29,14 @@ int main(int argc, char** argv) {
 	if (parser.parse())
 		return 1;
 
-	//std::cout << "Built a parse-tree:" << std::endl;
+	std::cout << "Built a parse-tree:" << std::endl;
 
-	//root.dump();
+	root.print(std::cout);
 
-	//std::ofstream out("graph.dot");
-	//out << "digraph G {"  << std::endl;
-	//root.dumpDot(out);
-	//out << "}";
+	std::ofstream out("graph.dot");
+	out << "digraph G {"  << std::endl;
+	root.toDot(out);
+	out << "}";
 
 	fclose(yyin);
 	return 0;

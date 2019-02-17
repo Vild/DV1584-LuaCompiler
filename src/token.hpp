@@ -4,35 +4,49 @@
 #include <iostream>
 #include <fstream>
 #include <string_view>
+#include <limits>
 
 namespace ast::token {
 	class Token {
 	public:
-		virtual void print(std::ostream& out) = 0;
-		virtual void toDot(std::ostream& out) = 0;
+		std::string name;
+		int id;
 
-		virtual std::string_view toString() = 0;
+		Token(std::string name) : name(name) {
+			static int idCounter = 0;
+			id = idCounter++;
+		}
+		virtual void print(std::ostream& out) {
+			out << toString() << std::endl;
+		}
+
+		virtual void toDot(std::ostream& out) {
+			out << name << id << "[label=\""<< toString() << "\"];" << std::endl;
+		}
+		virtual std::string_view toString() {
+			return name;
+		}
 	};
 
 	class BinOPToken : public Token {
 	public:
-#define enumMembers(o) \
-	o(UNK) \
-	o(plus) \
-	o(mul) \
-	o(div) \
-	o(pow) \
-	o(mod) \
-	o(dotdot) \
-	o(less) \
-	o(lessOrEqual) \
-	o(more) \
-	o(moreOrEqual) \
-	o(equal) \
-	o(notEqual) \
-	o(and_) \
-	o(or_) \
-	o(minus)
+#define enumMembers(o)													\
+		o(UNK)																			\
+		o(plus)																			\
+		o(mul)																			\
+		o(div)																			\
+		o(pow)																			\
+		o(mod)																			\
+		o(dotdot)																		\
+		o(less)																			\
+		o(lessOrEqual)															\
+		o(more)																			\
+		o(moreOrEqual)															\
+		o(equal)																		\
+		o(notEqual)																	\
+		o(and_)																			\
+		o(or_)																			\
+		o(minus)
 
 		enum class OP {
 #define o(x) x,
@@ -41,20 +55,12 @@ namespace ast::token {
 		};
 
 		OP op;
-		BinOPToken() : op(OP::UNK) {}
-		BinOPToken(OP op) : op(op) {}
-
-		virtual void print(std::ostream& out) {
-			out << toString() << std::endl;
-		}
-		virtual void toDot(std::ostream& out) {
-			static int id = 0;
-			out << "BinOPToken" << id++ << "[label=\""<< toString() << "\"];" << std::endl;
-		}
+		BinOPToken() : Token("BinOPToken"), op(OP::UNK) {}
+		BinOPToken(OP op) : Token("BinOPToken"), op(op) {}
 
 		virtual std::string_view toString() {
 			static const char* OP_Str[] = {
-#define o(x) "BinOPToken: " #x,
+#define o(x) "BinOpToken: "#x,
 				enumMembers(o)
 #undef o
 			};
@@ -64,28 +70,13 @@ namespace ast::token {
 #undef enumMembers
 	};
 
-	class MinusOPToken : public Token {
-	public:
-		virtual void print(std::ostream& out) {
-			out << toString() << std::endl;
-		}
-		virtual void toDot(std::ostream& out) {
-			static int id = 0;
-			out << "MinusOPToken" << id++ << "[label=\""<< toString() << "\"];" << std::endl;
-		}
-
-		virtual std::string_view toString() {
-			return "MinusOPToken";
-		}
-	};
-
 	class UnOPToken : public Token {
 	public:
-#define enumMembers(o) \
-	o(UNK) \
-	o(not_) \
-	o(pound) \
-	o(minus)
+#define enumMembers(o)													\
+		o(UNK)																			\
+		o(not_)																			\
+		o(pound)																		\
+		o(minus)
 
 		enum class OP {
 #define o(x) x,
@@ -94,16 +85,8 @@ namespace ast::token {
 		};
 
 		OP op;
-		UnOPToken() : op(OP::UNK) {}
-		UnOPToken(OP op) : op(op) {}
-
-		virtual void print(std::ostream& out) {
-			out << toString() << std::endl;
-		}
-		virtual void toDot(std::ostream& out) {
-			static int id = 0;
-			out << "UnOPToken" << id++ << "[label=\""<< toString() << "\"];" << std::endl;
-		}
+		UnOPToken() : Token("UnOPToken"), op(OP::UNK) {}
+		UnOPToken(OP op) : Token("UnOPToken"), op(op) {}
 
 		virtual std::string_view toString() {
 			static const char* OP_Str[] = {
@@ -117,18 +100,67 @@ namespace ast::token {
 #undef enumMembers
 	};
 
-	class SemicolonToken : public Token {
-	public:
-		virtual void print(std::ostream& out) {
-			out << toString() << std::endl;
-		}
-		virtual void toDot(std::ostream& out) {
-			static int id = 0;
-			out << "SemicolonToken" << id++ << "[label=\""<< toString() << "\"];" << std::endl;
-		}
+#define tokens(o)																\
+		o(MinusOP)																	\
+		o(Semicolon)																\
+		o(Equals)																		\
+		o(Comma)																		\
+		o(Dot)																			\
+		o(Colon)																		\
+		o(SquareOpen)																\
+		o(SquareClose)															\
+		o(VariableList)															\
+		o(ParenthesisOpen)													\
+		o(ParenthesisClose)													\
+		o(ListOpen)																	\
+		o(ListClose)																\
+		o(Do)																				\
+		o(End)																			\
+		o(While)																		\
+		o(Repeat)																		\
+		o(Until)																		\
+		o(If)																				\
+		o(Then)																			\
+		o(ElseIf)																		\
+		o(Else)																			\
+		o(For)																			\
+		o(In)																				\
+		o(Function)																	\
+		o(Local)																		\
+		o(Return)																		\
+		o(Break)																		\
+		o(Nil)																			\
+		o(True)																			\
+		o(False)
 
-		virtual std::string_view toString() {
-			return "SemicolonToken";
-		}
+#define o(x) class x##Token : public Token { public: x##Token() : Token(#x "Token") {} };
+	tokens(o)
+#undef o
+#undef tokens
+
+	class QuotedToken : public Token {
+	public:
+			std::string value;
+			QuotedToken() : Token("QuotedToken"), value("") {}
+			QuotedToken(std::string value) : Token("QuotedToken"), value(value) {}
+	};
+	class DblQuotedToken : public Token {
+	public:
+			std::string value;
+			DblQuotedToken() : Token("QuotedToken"), value("") {}
+			DblQuotedToken(std::string value) : Token("DblQuotedToken"), value(value) {}
+	};
+	class NameToken : public Token {
+	public:
+			std::string value;
+			NameToken() : Token("QuotedToken"), value("") {}
+			NameToken(std::string value) : Token("NameToken"), value(value) {}
+	};
+	class NumberToken : public Token {
+	public:
+			float value;
+			NumberToken() : Token("NumberToken"), value(std::numeric_limits<double>::quiet_NaN()) {}
+			NumberToken(float value) : Token("NumberToken"), value(value) {}
+			NumberToken(std::string value) : Token("NumberToken"), value(atof(value.c_str())) {}
 	};
 }

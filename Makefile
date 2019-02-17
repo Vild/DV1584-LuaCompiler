@@ -59,4 +59,3 @@ clean:
 	@$(call BEG,$(BLUE),"  -\> RM","$(OBJ)")
 	@$(RM) -rf $(OBJ)
 	@$(call END,$(BLUE),"  -\> RM","$(OBJ)")
-

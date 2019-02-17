@@ -31,17 +31,6 @@ Unop : UNOP { $$ = $1; }
 | MINUSOP { $$ = {ast::token::UnOPToken::OP::minus}; }
 ;
 
-chunkStatements : LIST_OPEN stat LIST_CLOSE {}
-| LIST_OPEN stat SEMICOLON LIST_CLOSE {}
-| chunkStatements LIST_OPEN stat LIST_CLOSE {}
-| chunkStatements LIST_OPEN stat SEMICOLON LIST_CLOSE {}
-;
-
-chunk : chunkStatements laststat {}
-| laststat {}
-| chunkStatements laststat SEMICOLON {}
-| laststat SEMICOLON {}
-;
 
 stat : varlist EQUALS explist {}
 | functioncall {}
@@ -58,10 +47,6 @@ stat : varlist EQUALS explist {}
 ;
 
 
-laststat : RETURN {}
-| RETURN explist {}
-| BREAK {}
-;
 
 funcnamePart : Name {}
 | funcnamePart DOT Name {}
