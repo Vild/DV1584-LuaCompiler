@@ -13,24 +13,6 @@ stream : block {}
 | stream block {}
 ;
 
-block : chunk {}
-;
-
-String : DBLQUOTED {}
-| QUOTED {}
-;
-Name : NAME { $$ = $1; }
-;
-Number : NUMBER { $$ = $1; }
-;
-
-Binop : BINOP { $$ = $1; }
-| MINUSOP { $$ = {ast::token::BinOPToken::OP::minus}; }
-;
-Unop : UNOP { $$ = $1; }
-| MINUSOP { $$ = {ast::token::UnOPToken::OP::minus}; }
-;
-
 
 stat : varlist EQUALS explist {}
 | functioncall {}
@@ -135,10 +117,16 @@ fieldsep : COMMA {}
 ;
 
 
-%type <std::string> String
-%type <std::string> Name
-%type <std::string> Number
-%type	<ast::Node> block chunkStatements chunk stat laststat funcnamePart funcname varlist var namelist explist exp prefixexp functioncall args function funcbody parlist tableconstructor fieldlistParts fieldlist field fieldsep
+%type <ast::token::Token> String
+%type <ast::token::NameToken> Name
+%type <ast::token::NumberToken> Number
+%type	<ast::NodePtr> block chunkStatements chunk stat laststat funcnamePart funcname varlist var namelist explist exp prefixexp functioncall args function funcbody parlist tableconstructor fieldlistParts fieldlist field fieldsep
 
 %type <ast::token::BinOPToken> Binop
 %type <ast::token::UnOPToken> Unop
+* sdasd
+
+
+funcname : funcnamePart { $$ = make<VariableRefNode>($1); }
+| funcnamePart COLON Name {}
+;

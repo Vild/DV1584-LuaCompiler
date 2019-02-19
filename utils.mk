@@ -13,27 +13,38 @@ LFLAGS :=
 ARFLAGS := rcs
 
 # == Fun color output ==
+ifdef NO_COLOR
+OFF =
+BOLD =
+BLUE =
+GREEN =
+RED =
+YELLOW =
+else
 OFF = \033[1;0m
 BOLD = \033[1;1m
 BLUE = $(BOLD)\033[1;34m
 GREEN = $(BOLD)\033[1;32m
 RED = $(BOLD)\033[1;31m
 YELLOW = $(BOLD)\033[1;33m
+override CFLAGS += -fdiagnostics-color=always
+override CXXFLAGS += -fdiagnostics-color=always
+endif
 
-BEG =	echo -e -n "$(1)$(2)$(OFF) \033[1m$(3)...$(OFF)" ; echo -n > /tmp/.`whoami`-build-errors
+BEG =	echo -e -n "$(1)$(2)$(OFF) $(BOLD)$(3)...$(OFF)" ; echo -n > /tmp/.`whoami`-build-errors
 END =	if [[ -s /tmp/.`whoami`-build-errors ]] ; then \
 		if cut -d':' -f4 /tmp/.`whoami`-build-errors | grep -q error || cut -d':' -f3 /tmp/.`whoami`-build-errors | grep -q error || grep -qv warning /tmp/.`whoami`-build-errors; then \
-			echo -e -n "\r$(RED)$(2)$(OFF) \033[1m$(3)   $(OFF)\n"; \
+			echo -e -n "\r$(RED)$(2)$(OFF) $(BOLD)$(3)   $(OFF)\n"; \
 			cat /tmp/.`whoami`-build-errors; \
 			rm /tmp/.`whoami`-build-errors || true; \
 			exit 1; \
 		else \
-			echo -e -n "\r$(YELLOW)$(2)$(OFF) \033[1m$(3)   $(OFF)\n"; \
+			echo -e -n "\r$(YELLOW)$(2)$(OFF) $(BOLD)$(3)   $(OFF)\n"; \
 			cat /tmp/.`whoami`-build-errors; \
 			rm /tmp/.`whoami`-build-errors || true; \
 		fi \
 	else \
-		echo -e -n "\r$(1)$(2)$(OFF) \033[1m$(3)$(OFF)\033[K\n"; \
+		echo -e -n "\r$(1)$(2)$(OFF) $(BOLD)$(3)$(OFF)\033[K\n"; \
 	fi
 
 INFO = echo -e -n "$(GREEN)$(1) $(2)$(OFF)\n"

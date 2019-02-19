@@ -23,11 +23,12 @@
 #include <token.hpp>
 #include <ast.hpp>
 
-template <class T, Args...>
-inline auto make(Args args) { return std::make_unique<T>(std::forward(args)); }
+	template <typename T, typename... Args>
+	inline auto make(Args&&... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
 
 }
 %code {
+	extern std::shared_ptr<ast::RootNode> root;
 #define YY_DECL yy::parser::symbol_type yylex()
 YY_DECL;
 }
@@ -72,19 +73,20 @@ YY_DECL;
 %token EndOfFile 0 "end of file"
 
 
+%type <ast::token::Token> String
 %type <ast::token::NameToken> Name
 %type <ast::token::NumberToken> Number
 %type <ast::token::BinOPToken> Binop
 %type <ast::token::UnOPToken> Unop
 
-%type <ast::RootNodePtr&> root
-%type <ast::NodePtr> block stat laststat lastChunkStatement chunkStatement
-%type <ast::ChunkNodePtr> chunk
+%type <std::shared_ptr<ast::RootNode>> root
+%type <ast::NodePtr> block stat laststat lastChunkStatement chunkStatement funcnamePart funcname varlist var namelist explist exp prefixexp functioncall args function funcbody parlist tableconstructor fieldlistParts fieldlist field fieldsep
+%type <std::shared_ptr<ast::ChunkNode>> chunk
 %type <std::vector<ast::NodePtr>> chunkStatements
 
 %%
 
-root : block { root = make<ast::RootNode>(); root->children.push_back(token); $$ = root; }
+root : block { root = make<ast::RootNode>(); root->children.push_back($1); $$ = root; }
 | root block { root->children.push_back($2); $$ = root; }
 ;
 
@@ -118,55 +120,54 @@ chunkStatement : stat { $$ = $1; }
 | chunkStatement SEMICOLON { $$ = $1; }
 ;
 
-stat : varlist EQUALS explist { $$ = make<AssignValueNode>($1, $2); }
-| functioncall { $$ = make<FunctionCall>($1); }
-| FUNCTION funcname funcbody { $$ = make<FunctionDefinitionNode>($2, $3); }
-| LOCAL FUNCTION Name funcbody { $$ = make<AssignValueNode>($2, $3); }
-| LOCAL namelist { $$ = make<ConstructLocalVariable>($2); }
-| LOCAL namelist EQUALS explist { $$ = make<ConstructLocalVariable>($2, $4); }
+stat : varlist EQUALS explist { $$ = make<ast::AssignValueNode>($1, $2); }
+| functioncall { $$ = make<ast::FunctionCall>($1); }
+| FUNCTION funcname funcbody { $$ = make<ast::AssignValueNode>($2, $3); }
+| LOCAL FUNCTION Name funcbody { $$ = make<ast::LocalAssignValueNode>($3, $4); }
+| LOCAL namelist { $$ = make<ast::LocalAssignValueNode>($2); }
+| LOCAL namelist EQUALS explist { $$ = make<ast::LocalAssignValueNode>($2, $4); }
 ;
 
-laststat : RETURN { $$ = make<ReturnNode>(); }
-| RETURN explist { $$ = make<ReturnNode>($2); }
-| BREAK { $$ = make<BreakNode>(); }
+laststat : RETURN { $$ = make<ast::ReturnNode>(); }
+| RETURN explist { $$ = make<ast::ReturnNode>($2); }
+| BREAK { $$ = make<ast::BreakNode>(); }
 ;
 
-funcnamePart : Name {}
-| funcnamePart DOT Name {}
+funcnamePart : Name { $$ = make<ast::VariableRefNode>($1); }
+| funcnamePart DOT Name { $$ = make<ast::IndexOfNode>($1, $3); }
 ;
 
-funcname : funcnamePart {}
-| funcnamePart COLON Name {}
+funcname : funcnamePart { $$ = make<ast::VariableRefNode>($1); }
 ;
 
-varlist : var {}
-| varlist COMMA var {}
+varlist : var { $$ = make<ast::VariableRefListNode>(); $$->children.push_back($1); }
+| varlist COMMA var { $$ = $1; $$->children.push_back($3); }
 ;
 
-var : Name {}
-| prefixexp SQUARE_OPEN exp SQUARE_CLOSE {}
-| prefixexp DOT Name {}
+var : Name { $$ = make<ast::VariableRefNode>($1); }
+| prefixexp SQUARE_OPEN exp SQUARE_CLOSE { $$ = make<ast::IndexOfNode>($1, $3);}
+| prefixexp DOT Name { $$ = make<ast::IndexOfNode>($1, $3); }
 ;
 
-namelist : Name {}
+namelist : Name { $$ = make<ast::VariableRefNode>($1);  }
 | namelist COMMA Name {}
 ;
 
-explist : exp {}
-| explist COMMA exp {}
+explist : exp { $$ = make<ast::VariableRefListNode>(); $$->children.push_back($1); }
+| explist COMMA exp { $$ = $1; $$->children.push_back($3); }
 ;
 
-exp : NIL {}
-| FALSE {}
-| TRUE {}
-| Number {}
-| String {}
-| VARIABLE_LIST {}
-| function {}
-| prefixexp {}
-| tableconstructor {}
-| exp Binop exp {}
-| Unop exp {}
+exp : NIL { $$ = make<ast::ValueNode>($1); }
+| FALSE { $$ = make<ast::ValueNode>($1); }
+| TRUE { $$ = make<ast::ValueNode>($1); }
+| Number { $$ = make<ast::ValueNode>($1); }
+| String { $$ = make<ast::ValueNode>($1); }
+| VARIABLE_LIST { $$ = make<ast::ValueNode>($1); }
+| function { $$ = $1; }
+| prefixexp { $$ = $1; }
+| tableconstructor { $$ = $1; }
+| exp Binop exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| Unop exp { $$ = make<ast::UnOPNode>($1, $2); }
 ;
 
 prefixexp : var {}
@@ -209,19 +210,18 @@ fieldlist : fieldlistParts {}
 ;
 
 field : SQUARE_OPEN exp SQUARE_CLOSE EQUALS exp {}
-| Name EQUALS exp {}
-| exp {}
+| Name EQUALS exp { $$ = make<ast::AssignValueNode>($1, $3); }
+| exp { $$ = $1; }
 ;
 
 fieldsep : COMMA {}
 | SEMICOLON {}
 ;
 
-
-String : DBLQUOTED {}
-| QUOTED {}
+String : DBLQUOTED { $$ = $1; }
+| QUOTED { $$ = $1; }
 ;
-Name : NAME { $$ = $1; }
+Name : NAME { $$ = make<ast::VariableRefNode>($1); }
 ;
 Number : NUMBER { $$ = $1; }
 ;

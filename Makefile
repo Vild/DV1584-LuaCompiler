@@ -8,13 +8,12 @@ OBJ=obj/
 BIN=bin/
 
 ASS1 := ./int
-ASS1_OBJECTS :=$(OBJ)lua.tab.o $(OBJ)lua.yy.o $(OBJ)main.o 
+ASS1_OBJECTS :=$(OBJ)lua.tab.o $(OBJ)lua.yy.o $(OBJ)main.o
 
 TARGETS := $(ASS1)
-TESTS := $(OBJ)tests/grade-e.svg
+TESTS := $(OBJ)tests/base.svg
 # $(foreach testProgram,$(shell find tests -iname "*.lua"), $(OBJ)$(testProgram:.lua=.svg))
 
-CFLAGS := -fdiagnostics-color=always
 CXXFLAGS := -std=c++17
 
 include utils.mk
