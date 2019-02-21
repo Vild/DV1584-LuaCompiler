@@ -33,9 +33,9 @@
 YY_DECL;
 }
 
-%token <ast::token::BinOPToken> BINOP
-%token <ast::token::MinusOPToken> MINUSOP
-%token <ast::token::UnOPToken> UNOP
+%token <ast::token::BinOPToken> PLUS MUL DIV POW MOD DOTDOT LESS LESSOREQUAL MORE MOREOREQUAL EQUAL NOTEQUAL AND OR
+%token <ast::token::MinusOPToken> MINUS
+%token <ast::token::UnOPToken> NOT POUND
 %token <ast::token::SemicolonToken> SEMICOLON
 %token <ast::token::EqualsToken> EQUALS
 %token <ast::token::CommaToken> COMMA
@@ -75,13 +75,22 @@ YY_DECL;
 %type <std::shared_ptr<ast::StringNode>> String
 %type <std::shared_ptr<ast::VariableRefNode>> Name
 %type <std::shared_ptr<ast::NumberNode>> Number
-%type <ast::token::BinOPToken> Binop
-%type <ast::token::UnOPToken> Unop
 
 %type <std::shared_ptr<ast::RootNode>> root
-%type <ast::NodePtr> block stat laststat lastChunkStatement chunkStatement funcnamePart funcname varlist var namelist explist exp prefixexp functioncall args function funcbody parlist tableconstructor fieldlistParts fieldlist field fieldsep
+%type <ast::NodePtr> block stat laststat lastChunkStatement chunkStatement funcnamePart funcname var namelist explist exp prefixexp functioncall args function funcbody parlist tableconstructor fieldlistParts fieldlist field fieldsep expBinOPexp unopExp
 %type <std::shared_ptr<ast::ChunkNode>> chunk
 %type <std::vector<ast::NodePtr>> chunkStatements
+
+
+
+%left OR
+%left AND
+%left LESS MORE LESSOREQUAL MOREOREQUAL NOTEQUAL EQUAL
+%left DOTDOT
+%left PLUS MINUS
+%left MUL DIV MOD
+%precedence NOT POUND
+%right POW
 
 %%
 
@@ -119,7 +128,7 @@ chunkStatement : stat { $$ = $1; }
 | chunkStatement SEMICOLON { $$ = $1; }
 ;
 
-stat : varlist EQUALS explist { $$ = make<ast::AssignValueNode>($1, $3); }
+stat : var EQUALS exp { $$ = make<ast::AssignValueNode>($1, $3); }
 | functioncall { $$ = $1; }
 | FUNCTION funcname funcbody { $$ = make<ast::AssignValueNode>($2, $3); }
 | LOCAL FUNCTION Name funcbody {
@@ -129,12 +138,12 @@ stat : varlist EQUALS explist { $$ = make<ast::AssignValueNode>($1, $3); }
 		cn->addScope = false;
 		$$ = cn;
  }
-| LOCAL namelist { $$ = make<ast::LocalAssignValueNode>($2, make<ast::ValueNode>(ast::token::NilToken())); }
-| LOCAL namelist EQUALS explist { $$ = make<ast::LocalAssignValueNode>($2, $4); }
+| LOCAL Name { $$ = make<ast::LocalAssignValueNode>($2, make<ast::ValueNode>(ast::token::NilToken())); }
+| LOCAL Name EQUALS exp { $$ = make<ast::LocalAssignValueNode>($2, $4); }
 ;
 
 laststat : RETURN { $$ = make<ast::ReturnNode>(); }
-| RETURN explist { $$ = make<ast::ReturnNode>($2); }
+| RETURN exp { $$ = make<ast::ReturnNode>($2); }
 | BREAK { $$ = make<ast::BreakNode>(); }
 ;
 
@@ -145,20 +154,16 @@ funcnamePart : Name { $$ = make<ast::VariableRefNode>($1); }
 funcname : funcnamePart { $$ = make<ast::VariableRefNode>($1); }
 ;
 
-varlist : var { $$ = make<ast::VariableRefListNode>(); $$->children.push_back($1); }
-| varlist COMMA var { $$ = $1; $$->children.push_back($3); }
-;
-
 var : Name { $$ = $1; }
 | prefixexp SQUARE_OPEN exp SQUARE_CLOSE { $$ = make<ast::IndexOfNode>($1, $3);}
 | prefixexp DOT Name { $$ = make<ast::IndexOfNode>($1, $3); }
 ;
 
-namelist : Name { $$ = make<ast::VariableRefListNode>(); $$->children.push_back($1); }
+namelist : Name { $$ = make<ast::NameListNode>(); $$->children.push_back($1); }
 | namelist COMMA Name { $$ = $1; $$->children.push_back($3);}
 ;
 
-explist : exp { $$ = make<ast::VariableRefListNode>(); $$->children.push_back($1); }
+explist : exp { $$ = make<ast::ExpressionListNode>(); $$->children.push_back($1); }
 | explist COMMA exp { $$ = $1; $$->children.push_back($3); }
 ;
 
@@ -171,8 +176,30 @@ exp : NIL { $$ = make<ast::NilNode>(); }
 | function { $$ = $1; }
 | prefixexp { $$ = $1; }
 | tableconstructor { $$ = $1; }
-| exp Binop exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
-| Unop exp { $$ = make<ast::UnOPNode>($1, $2); }
+| expBinOPexp { $$ = $1; }
+| unopExp { $$ = $1; }
+;
+
+expBinOPexp: exp PLUS exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp MINUS exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp MUL exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp DIV exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp POW exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp MOD exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp DOTDOT exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp LESS exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp LESSOREQUAL exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp MORE exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp MOREOREQUAL exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp EQUAL exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp NOTEQUAL exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp AND exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+| exp OR exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+;
+
+unopExp : MINUS exp { $$ = make<ast::UnOPNode>($1, $2); }
+| NOT exp { $$ = make<ast::UnOPNode>($1, $2); }
+| POUND exp { $$ = make<ast::UnOPNode>($1, $2); }
 ;
 
 prefixexp : var { $$ = $1; }
@@ -187,7 +214,7 @@ functioncall : prefixexp args { $$ = make<ast::FunctionCallNode>($1, $2); }
  }
 ;
 
-args : PARENTHESIS_OPEN PARENTHESIS_CLOSE { $$ = make<ast::VariableRefListNode>(); }
+args : PARENTHESIS_OPEN PARENTHESIS_CLOSE { $$ = make<ast::ExpressionListNode>(); }
 | PARENTHESIS_OPEN explist PARENTHESIS_CLOSE { $$ = $2; }
 | tableconstructor { $$ = $1; }
 | String { $$ = $1; }
@@ -202,14 +229,14 @@ funcbody : PARENTHESIS_OPEN PARENTHESIS_CLOSE block END { $$ = make<ast::Functio
 
 parlist : namelist { $$ = $1; }
 | namelist COMMA VARIABLE_LIST { $$ = $1; $$->children.push_back(make<ast::ValueNode>($3)); }
-| VARIABLE_LIST { $$ = make<ast::VariableRefListNode>(); $$->children.push_back(make<ast::ValueNode>($1)); }
+| VARIABLE_LIST { $$ = make<ast::NameListNode>(); $$->children.push_back(make<ast::ValueNode>($1)); }
 ;
 
 tableconstructor : LIST_OPEN LIST_CLOSE { $$ = make<ast::TableNode>(); }
 | LIST_OPEN fieldlist LIST_CLOSE { $$ = make<ast::TableNode>($2); }
 ;
 
-fieldlistParts : field { $$ = make<ast::VariableRefListNode>(); $$->children.push_back($1); }
+fieldlistParts : field { $$ = make<ast::FieldListNode>(); $$->children.push_back($1); }
 | fieldlistParts fieldsep field { $$ = $1; $$->children.push_back($3); }
 ;
 
@@ -231,11 +258,4 @@ String : QUOTED { $$ = make<ast::StringNode>($1); }
 Name : NAME { $$ = make<ast::VariableRefNode>($1); }
 ;
 Number : NUMBER { $$ = make<ast::NumberNode>($1); }
-;
-
-Binop : BINOP { $$ = $1; }
-| MINUSOP { $$ = {ast::token::BinOPToken::OP::minus}; }
-;
-Unop : UNOP { $$ = $1; }
-| MINUSOP { $$ = {ast::token::UnOPToken::OP::minus}; }
 ;

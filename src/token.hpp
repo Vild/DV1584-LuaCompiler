@@ -33,6 +33,11 @@ namespace ast::token {
 		}
 	};
 
+	class MinusOPToken : public Token {
+	public:
+		MinusOPToken() : Token("MinusOPToken") {}
+	};
+
 	class BinOPToken : public Token {
 	public:
 #define enumMembers(o)													\
@@ -106,7 +111,6 @@ namespace ast::token {
 	};
 
 #define tokens(o)																\
-		o(MinusOP)																	\
 		o(Semicolon)																\
 		o(Equals)																		\
 		o(Comma)																		\
@@ -165,9 +169,9 @@ namespace ast::token {
 	};
 	class NumberToken : public Token {
 	public:
-		float value;
+		double value;
 		NumberToken() : Token("NumberToken"), value(std::numeric_limits<double>::quiet_NaN()) {}
-		NumberToken(float value) : Token("NumberToken"), value(value) {}
+		NumberToken(double value) : Token("NumberToken"), value(value) {}
 		NumberToken(std::string value) : Token("NumberToken"), value(atof(value.c_str())) {}
 
 		virtual std::string toString() {

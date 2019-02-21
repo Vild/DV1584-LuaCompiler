@@ -14,25 +14,25 @@ extern yy::location loc;
 loc.step();
 %}
 
-"+"   { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::plus}, loc); }
-"*"   { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::mul}, loc); }
-"/"   { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::div}, loc); }
-"^"   { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::pow}, loc); }
-"%"   { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::mod}, loc); }
-".."  { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::dotdot}, loc); }
-"<"   { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::less}, loc); }
-"<="  { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::lessOrEqual}, loc); }
-">"   { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::more}, loc); }
-">="  { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::moreOrEqual}, loc); }
-"=="  { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::equal}, loc); }
-"~="  { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::notEqual}, loc); }
-"and" { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::and_}, loc); }
-"or"  { return yy::parser::make_BINOP({ast::token::BinOPToken::OP::or_}, loc); }
+"+"   { return yy::parser::make_PLUS({ast::token::BinOPToken::OP::plus}, loc); }
+"*"   { return yy::parser::make_MUL({ast::token::BinOPToken::OP::mul}, loc); }
+"/"   { return yy::parser::make_DIV({ast::token::BinOPToken::OP::div}, loc); }
+"^"   { return yy::parser::make_POW({ast::token::BinOPToken::OP::pow}, loc); }
+"%"   { return yy::parser::make_MOD({ast::token::BinOPToken::OP::mod}, loc); }
+".."  { return yy::parser::make_DOTDOT({ast::token::BinOPToken::OP::dotdot}, loc); }
+"<"   { return yy::parser::make_LESS({ast::token::BinOPToken::OP::less}, loc); }
+"<="  { return yy::parser::make_LESSOREQUAL({ast::token::BinOPToken::OP::lessOrEqual}, loc); }
+">"   { return yy::parser::make_MORE({ast::token::BinOPToken::OP::more}, loc); }
+">="  { return yy::parser::make_MOREOREQUAL({ast::token::BinOPToken::OP::moreOrEqual}, loc); }
+"=="  { return yy::parser::make_EQUAL({ast::token::BinOPToken::OP::equal}, loc); }
+"~="  { return yy::parser::make_NOTEQUAL({ast::token::BinOPToken::OP::notEqual}, loc); }
+"and" { return yy::parser::make_AND({ast::token::BinOPToken::OP::and_}, loc); }
+"or"  { return yy::parser::make_OR({ast::token::BinOPToken::OP::or_}, loc); }
 
-"-"   { return yy::parser::make_MINUSOP({}, loc); }
+"-"   { return yy::parser::make_MINUS({}, loc); }
 
-"not" { return yy::parser::make_UNOP({ast::token::UnOPToken::OP::not_}, loc); }
-"#"   { return yy::parser::make_UNOP({ast::token::UnOPToken::OP::pound}, loc); }
+"not" { return yy::parser::make_NOT({ast::token::UnOPToken::OP::not_}, loc); }
+"#"   { return yy::parser::make_POUND({ast::token::UnOPToken::OP::pound}, loc); }
 
 ";"    { return yy::parser::make_SEMICOLON({}, loc); }
 "="    { return yy::parser::make_EQUALS({}, loc); }

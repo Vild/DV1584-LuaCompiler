@@ -4,6 +4,7 @@
 #include <expect.hpp>
 #include <cassert>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 
 static std::shared_ptr<ast::NilNode> nilNode;
@@ -14,8 +15,8 @@ static int indent = 0;
 struct Debug {
 	Debug(const char* func) {
 		indent++;
-		for (int i = 0; i < indent; i++) std::cout << "  ";
-		std::cout << func << std::endl;
+		// for (int i = 0; i < indent; i++) std::cout << "  ";
+		// std::cout << func << std::endl;
 	}
 	~Debug() { indent--; }
 };
@@ -56,7 +57,22 @@ void evaluate(std::shared_ptr<ast::RootNode> root) {
 
 	Scope scope{};
 
-	// Initialize io.print here
+	ast::FunctionNode::ExternalFunction_t print_f = [](std::shared_ptr<ast::ExpressionListNode> args) -> ast::NodePtr {
+									 bool first = true;
+									 for (ast::NodePtr child : args->children) {
+										 if (!first)
+											 std::cout << "\t";
+										 first = false;
+										 auto number = std::dynamic_pointer_cast<ast::NumberNode>(child);
+										 std::cout << std::fixed << std::setprecision(1) << number->value;
+									 }
+									 std::cout << std::endl;
+									 return nilNode;
+								 };
+	auto print = std::make_shared<ast::FunctionNode>(print_f);
+	scope.set("print", print);
+
+	// Initialize print / io.print here
 
 	root->visit(scope);
 }
@@ -111,8 +127,8 @@ std::shared_ptr<ast::Node> ast::BinOPNode::visit(Scope& scope)  {
 		r = scope.get(var->name.value);
 	}
 
-	auto getFloats = [l, r]() -> std::pair<float, float> {
-		std::pair<float, float> ret;
+	auto getFloats = [l, r]() -> std::pair<double, double> {
+		std::pair<double, double> ret;
 		auto n1 = dynamic_cast<ast::NumberNode*>(l.get());
 		if (n1)
 			ret.first = n1->value;
@@ -121,7 +137,7 @@ std::shared_ptr<ast::Node> ast::BinOPNode::visit(Scope& scope)  {
 			if (s1) {
 				const char* str = s1->value.c_str();
 				char* err = nullptr;
-				ret.first = strtof(str, &err);
+				ret.first = strtod(str, &err);
 				expect(str != err, "Left does not contain a number!");
 			} else
 				expect(0, (std::string("Left is not a number or string it is: ") + l->toString()).c_str());
@@ -135,7 +151,7 @@ std::shared_ptr<ast::Node> ast::BinOPNode::visit(Scope& scope)  {
 			if (s2) {
 				const char* str = s2->value.c_str();
 				char* err = nullptr;
-				ret.second = strtof(str, &err);
+				ret.second = strtod(str, &err);
 				expect(str != err, "Right does not contain a number!");
 			} else
 				expect(0, (std::string("Right is not a number or string it is: ") + r->toString()).c_str());
@@ -214,11 +230,11 @@ std::shared_ptr<ast::Node> ast::BinOPNode::visit(Scope& scope)  {
 	}
 	case OP::pow: {
 		auto lr = getFloats();
-		return std::make_shared<ast::NumberNode>(powf(lr.first, lr.second));
+		return std::make_shared<ast::NumberNode>(pow(lr.first, lr.second));
 	}
 	case OP::mod: {
 		auto lr = getFloats();
-		return std::make_shared<ast::NumberNode>(fmodf(lr.first, lr.second));
+		return std::make_shared<ast::NumberNode>(fmod(lr.first, lr.second));
 	}
 	case OP::dotdot: {
 		auto lr = getStrings();
@@ -288,12 +304,33 @@ std::shared_ptr<ast::Node> ast::ChunkNode::visit(Scope& scope) {
 
 std::shared_ptr<ast::Node> ast::FunctionCallNode::visit(Scope& scope) {
 	debug();
+	auto f = std::dynamic_pointer_cast<ast::VariableRefNode>(this->function()->visit(scope));
+	expect(f, "f is nullptr");
+
+	std::shared_ptr<ast::FunctionNode> function = std::dynamic_pointer_cast<ast::FunctionNode>(scope.get(f->name.value));
+	expect(function, "Function is not valid!");
+
+	std::shared_ptr<ast::ExpressionListNode> args = std::make_shared<ast::ExpressionListNode>();
+	std::shared_ptr<ast::ExpressionListNode> arguments = std::dynamic_pointer_cast<ast::ExpressionListNode>(this->arguments());
+	for (ast::NodePtr child : arguments->children) {
+		auto x = child->visit(scope);
+		auto obj = std::dynamic_pointer_cast<ast::VariableRefNode>(x);
+		if (obj)
+			args->children.push_back(scope.get(obj->name.value));
+		else
+			args->children.push_back(x);
+	}
+
+	if (function->externalFunction) {
+		return function->externalFunction(args);
+	} else {
+	}
 	return nilNode;
 }
 
 std::shared_ptr<ast::Node> ast::FunctionNode::visit(Scope& scope) {
 	debug();
-	return nilNode;
+	return std::make_shared<ast::FunctionNode>(*this);
 }
 
 std::shared_ptr<ast::Node> ast::IndexOfNode::visit(Scope& scope) {
@@ -342,10 +379,19 @@ std::shared_ptr<ast::Node> ast::ValueNode::visit(Scope& scope) {
 	return nilNode;
 }
 
-std::shared_ptr<ast::Node> ast::VariableRefListNode::visit(Scope& scope) {
+std::shared_ptr<ast::Node> ast::ExpressionListNode::visit(Scope& scope) {
 	debug();
-	expect(children.size() == 1, "TODO");
-	return children[0]->visit(scope);
+	return nilNode;
+}
+
+std::shared_ptr<ast::Node> ast::NameListNode::visit(Scope& scope) {
+	debug();
+	return nilNode;
+}
+
+std::shared_ptr<ast::Node> ast::FieldListNode::visit(Scope& scope) {
+	debug();
+	return nilNode;
 }
 
 std::shared_ptr<ast::Node> ast::VariableRefNode::visit(Scope& scope) {

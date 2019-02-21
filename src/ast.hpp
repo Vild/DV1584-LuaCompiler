@@ -85,10 +85,10 @@ namespace ast {
 
 	class NumberNode : public Node {
 	public:
-		float value;
+		double value;
 
 		NumberNode() {}
-		NumberNode(float value) : value(value) {}
+		NumberNode(double value) : value(value) {}
 		NumberNode(ast::token::NumberToken text) : value(text.value) {}
 
 		virtual std::shared_ptr<Node> visit(Scope& scope) override;
@@ -183,10 +183,26 @@ namespace ast {
 		virtual std::shared_ptr<Node> visit(Scope& scope) override;
 	};
 
-	class VariableRefListNode : public Node {
+	class ExpressionListNode : public Node {
 	public:
-		VariableRefListNode() {}
-		VariableRefListNode(std::initializer_list<NodePtr> l) : Node(l) {}
+		ExpressionListNode() {}
+		ExpressionListNode(std::initializer_list<NodePtr> l) : Node(l) {}
+
+		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+	};
+
+	class NameListNode : public Node {
+	public:
+		NameListNode() {}
+		NameListNode(std::initializer_list<NodePtr> l) : Node(l) {}
+
+		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+	};
+
+	class FieldListNode : public Node {
+	public:
+		FieldListNode() {}
+		FieldListNode(std::initializer_list<NodePtr> l) : Node(l) {}
 
 		virtual std::shared_ptr<Node> visit(Scope& scope) override;
 	};
@@ -217,6 +233,7 @@ namespace ast {
 
 		BinOPNode() {};
 		BinOPNode(NodePtr left, ast::token::BinOPToken op, NodePtr right) : Node{left, right}, op(op) {}
+		BinOPNode(NodePtr left, ast::token::MinusOPToken op, NodePtr right) : Node{left, right}, op(ast::token::BinOPToken(ast::token::BinOPToken::OP::minus)) {}
 
 		virtual std::shared_ptr<Node> visit(Scope& scope) override;
 
@@ -232,6 +249,7 @@ namespace ast {
 
 		UnOPNode() {};
 		UnOPNode(ast::token::UnOPToken op, NodePtr right) : Node{right}, op(op) {}
+		UnOPNode(ast::token::MinusOPToken, NodePtr right) : Node{right}, op(ast::token::UnOPToken{ast::token::UnOPToken::OP::minus}) {}
 
 		virtual std::shared_ptr<Node> visit(Scope& scope) override;
 
@@ -253,7 +271,7 @@ namespace ast {
 
 	class FunctionNode : public Node {
 	public:
-		typedef NodePtr (*ExternalFunction_t)(NodePtr arguments);
+		typedef NodePtr (*ExternalFunction_t)(std::shared_ptr<ast::ExpressionListNode> arguments);
 		NodePtr arguments() { return children[0]; }
 		NodePtr body() { return children[1]; }
 
