@@ -2,10 +2,11 @@
 #include <cstdlib>
 #include <iostream>
 #include <lua.tab.hpp>
+#include <evaluate.hpp>
 
 #include <fstream>
 
-ast::RootNodePtr root;
+std::shared_ptr<ast::RootNode> root;
 yy::location loc;
 
 extern FILE* yyin;
@@ -31,12 +32,17 @@ int main(int argc, char** argv) {
 
 	std::cout << "Built a parse-tree:" << std::endl;
 
-	root.print(std::cout);
+	root->print(std::cout);
 
 	std::ofstream out("graph.dot");
 	out << "digraph G {"  << std::endl;
-	root.toDot(out);
+	root->toDot(out);
 	out << "}";
+	out.close();
+
+	std::cout << "Evaluating:" << std::endl;
+
+	evaluate(root);
 
 	fclose(yyin);
 	return 0;

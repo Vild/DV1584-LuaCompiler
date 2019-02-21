@@ -8,13 +8,16 @@ OBJ=obj/
 BIN=bin/
 
 ASS1 := ./int
-ASS1_OBJECTS :=$(OBJ)lua.tab.o $(OBJ)lua.yy.o $(OBJ)main.o
+ASS1_SOURCES := $(SRC)main.cpp $(SRC)evaluate.cpp $(OBJ)lua.tab.cpp $(OBJ)lua.yy.cpp
+ASS1_HEADERS := $(SRC)ast.hpp $(SRC)token.hpp $(SRC)evaluate.hpp $(SRC)expect.hpp $(OBJ)lua.tab.hpp
+ASS1_OBJECTS := $(OBJ)lua.tab.o $(OBJ)lua.yy.o $(OBJ)main.o $(OBJ)evaluate.o
 
 TARGETS := $(ASS1)
 TESTS := $(OBJ)tests/base.svg
 # $(foreach testProgram,$(shell find tests -iname "*.lua"), $(OBJ)$(testProgram:.lua=.svg))
 
-CXXFLAGS := -std=c++17
+CXXFLAGS := -std=c++14
+#-Wall -Wextra
 
 include utils.mk
 
@@ -49,7 +52,6 @@ $(OBJ)tests/%.svg: tests/%.lua $(INT)
 	@$(DIFF) $(@:.svg=).{lua,int}-output -y $(ERRORSS);
 	@$(call END,$(BLUE),"  -\>","Checking differance...");
 
-
 clean:
 	@$(call INFO,"::","Removing generated files...");
 	@$(call BEG,$(BLUE),"  -\> RM","$(TARGETS)")
@@ -58,3 +60,13 @@ clean:
 	@$(call BEG,$(BLUE),"  -\> RM","$(OBJ)")
 	@$(RM) -rf $(OBJ)
 	@$(call END,$(BLUE),"  -\> RM","$(OBJ)")
+
+.depend: $(ASS1_SOURCES) $(ASS1_HEADERS)
+	@$(call INFO,"::","Generating dependencies...");
+	@$(call BEG,$(BLUE),"  -\> RM","$(BIN)")
+	@$(RM) -rf ./.depend
+	@$(call END,$(BLUE),"  -\> RM","$(BIN)")
+	@$(call BEG,$(BLUE),"  -\> makedepend","$@ \<-- $(ASS1_SOURCES)")
+	@makedepend -- -Isrc -Iobj -- $(ASS1_SOURCES) -f- 2>/dev/null > $@
+	@$(call END,$(BLUE),"  -\> makedepend","$@ \<-- $(ASS1_SOURCES)")
+include .depend

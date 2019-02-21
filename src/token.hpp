@@ -3,8 +3,11 @@
 #pragma once
 #include <iostream>
 #include <fstream>
-#include <string_view>
 #include <limits>
+#include <cxxabi.h>
+#include <string>
+
+//TODO: Add 'override' keyword to functions
 
 namespace ast::token {
 	class Token {
@@ -15,6 +18,8 @@ namespace ast::token {
 		Token(std::string name) : name(name) {
 			static int idCounter = 0;
 			id = idCounter++;
+
+			std::cerr << "Constructing Token: " << name << std::endl;
 		}
 		virtual void print(std::ostream& out) {
 			out << toString() << std::endl;
@@ -23,7 +28,7 @@ namespace ast::token {
 		virtual void toDot(std::ostream& out) {
 			out << name << id << "[label=\""<< toString() << "\"];" << std::endl;
 		}
-		virtual std::string_view toString() {
+		virtual std::string toString() {
 			return name;
 		}
 	};
@@ -58,7 +63,7 @@ namespace ast::token {
 		BinOPToken() : Token("BinOPToken"), op(OP::UNK) {}
 		BinOPToken(OP op) : Token("BinOPToken"), op(op) {}
 
-		virtual std::string_view toString() {
+		virtual std::string toString() {
 			static const char* OP_Str[] = {
 #define o(x) "BinOpToken: "#x,
 				enumMembers(o)
@@ -88,7 +93,7 @@ namespace ast::token {
 		UnOPToken() : Token("UnOPToken"), op(OP::UNK) {}
 		UnOPToken(OP op) : Token("UnOPToken"), op(op) {}
 
-		virtual std::string_view toString() {
+		virtual std::string toString() {
 			static const char* OP_Str[] = {
 #define o(x) "UnOPToken: " #x,
 				enumMembers(o)
@@ -140,27 +145,33 @@ namespace ast::token {
 
 	class QuotedToken : public Token {
 	public:
-			std::string value;
-			QuotedToken() : Token("QuotedToken"), value("") {}
-			QuotedToken(std::string value) : Token("QuotedToken"), value(value) {}
-	};
-	class DblQuotedToken : public Token {
-	public:
-			std::string value;
-			DblQuotedToken() : Token("QuotedToken"), value("") {}
-			DblQuotedToken(std::string value) : Token("DblQuotedToken"), value(value) {}
+		std::string value;
+		QuotedToken() : Token("QuotedToken"), value("") {}
+		QuotedToken(std::string value) : Token("QuotedToken"), value(value) {}
+
+		virtual std::string toString() {
+			return std::string{"QuotedToken: "} + value;
+		}
 	};
 	class NameToken : public Token {
 	public:
-			std::string value;
-			NameToken() : Token("QuotedToken"), value("") {}
-			NameToken(std::string value) : Token("NameToken"), value(value) {}
+		std::string value;
+		NameToken() : Token("NameToken"), value("") {}
+		NameToken(std::string value) : Token("NameToken"), value(value) {}
+
+		virtual std::string toString() {
+			return std::string{"QuotedToken: "} + value;
+		}
 	};
 	class NumberToken : public Token {
 	public:
-			float value;
-			NumberToken() : Token("NumberToken"), value(std::numeric_limits<double>::quiet_NaN()) {}
-			NumberToken(float value) : Token("NumberToken"), value(value) {}
-			NumberToken(std::string value) : Token("NumberToken"), value(atof(value.c_str())) {}
+		float value;
+		NumberToken() : Token("NumberToken"), value(std::numeric_limits<double>::quiet_NaN()) {}
+		NumberToken(float value) : Token("NumberToken"), value(value) {}
+		NumberToken(std::string value) : Token("NumberToken"), value(atof(value.c_str())) {}
+
+		virtual std::string toString() {
+			return std::string{"QuotedToken: "} + std::to_string(value);
+		}
 	};
 }
