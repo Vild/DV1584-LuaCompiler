@@ -13,10 +13,11 @@ struct Scope {
 	std::map<std::string, std::shared_ptr<ast::Node>> environment;
 
 	~Scope();
+	void print();
 
-	void set(std::string key, std::shared_ptr<ast::Node> value);
-	void searchAndSet(std::string key, std::shared_ptr<ast::Node> value);
-	std::shared_ptr<ast::Node> get(std::string key);
+	void set(std::shared_ptr<ast::Node> key, std::shared_ptr<ast::Node> value);
+	void searchAndSet(std::shared_ptr<ast::Node> key, std::shared_ptr<ast::Node> value);
+	std::shared_ptr<ast::Node> get(std::shared_ptr<ast::Node> key);
 };
 
 void evaluate(std::shared_ptr<ast::RootNode> root);

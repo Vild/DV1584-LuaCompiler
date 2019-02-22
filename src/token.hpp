@@ -9,7 +9,7 @@
 
 //TODO: Add 'override' keyword to functions
 
-namespace ast::token {
+namespace ast { namespace token {
 	class Token {
 	public:
 		std::string name;
@@ -19,7 +19,7 @@ namespace ast::token {
 			static int idCounter = 0;
 			id = idCounter++;
 
-			std::cerr << "Constructing Token: " << name << std::endl;
+			//std::cerr << "Constructing Token: " << name << std::endl;
 		}
 		virtual void print(std::ostream& out) {
 			out << toString() << std::endl;
@@ -178,4 +178,4 @@ namespace ast::token {
 			return std::string{"QuotedToken: "} + std::to_string(value);
 		}
 	};
-}
+}}

@@ -1,3 +1,4 @@
+* sadasd
 ifStatement : IF exp THEN block END {}
 | IF exp THEN block elseIfBlocks END {}
 | IF exp THEN block ELSE block END {}
@@ -130,3 +131,8 @@ fieldsep : COMMA {}
 funcname : funcnamePart { $$ = make<VariableRefNode>($1); }
 | funcnamePart COLON Name {}
 ;
+* asdasda
+
+| exp Binop exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
+
+%type <ast::token::BinOPToken> Binop

@@ -31,17 +31,17 @@ override CFLAGS += -fdiagnostics-color=always
 override CXXFLAGS += -fdiagnostics-color=always
 endif
 
-BEG =	echo -e -n "$(1)$(2)$(OFF) $(BOLD)$(3)...$(OFF)" ; echo -n > /tmp/.`whoami`-build-errors
-END =	if [[ -s /tmp/.`whoami`-build-errors ]] ; then \
-		if cut -d':' -f4 /tmp/.`whoami`-build-errors | grep -q error || cut -d':' -f3 /tmp/.`whoami`-build-errors | grep -q error || grep -qv warning /tmp/.`whoami`-build-errors; then \
+BEG =	echo -e -n "$(1)$(2)$(OFF) $(BOLD)$(3)...$(OFF)" ; echo -n > .build-errors
+END =	if [[ -s .build-errors ]] ; then \
+		if cut -d':' -f4 .build-errors | grep -q error || cut -d':' -f3 .build-errors | grep -q error || grep -qv warning .build-errors; then \
 			echo -e -n "\r$(RED)$(2)$(OFF) $(BOLD)$(3)   $(OFF)\n"; \
-			cat /tmp/.`whoami`-build-errors; \
-			rm /tmp/.`whoami`-build-errors || true; \
+			cat .build-errors; \
+			rm .build-errors || true; \
 			exit 1; \
 		else \
 			echo -e -n "\r$(YELLOW)$(2)$(OFF) $(BOLD)$(3)   $(OFF)\n"; \
-			cat /tmp/.`whoami`-build-errors; \
-			rm /tmp/.`whoami`-build-errors || true; \
+			cat .build-errors; \
+			rm .build-errors || true; \
 		fi \
 	else \
 		echo -e -n "\r$(1)$(2)$(OFF) $(BOLD)$(3)$(OFF)\033[K\n"; \
@@ -49,8 +49,8 @@ END =	if [[ -s /tmp/.`whoami`-build-errors ]] ; then \
 
 INFO = echo -e -n "$(GREEN)$(1) $(2)$(OFF)\n"
 
-ERRORS = 2>>/tmp/.`whoami`-build-errors || true
-ERRORSS = >>/tmp/.`whoami`-build-errors || true
+ERRORS = 2>>.build-errors || true
+ERRORSS = >>.build-errors || true
 
 .PHONY: all clean init test
 

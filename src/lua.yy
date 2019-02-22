@@ -128,9 +128,16 @@ chunkStatement : stat { $$ = $1; }
 | chunkStatement SEMICOLON { $$ = $1; }
 ;
 
+
 stat : var EQUALS exp { $$ = make<ast::AssignValueNode>($1, $3); }
 | functioncall { $$ = $1; }
-| FUNCTION funcname funcbody { $$ = make<ast::AssignValueNode>($2, $3); }
+| FUNCTION funcname funcbody {
+		auto cn = make<ast::ChunkNode>();
+		cn->children.push_back(make<ast::AssignValueNode>($2, make<ast::ValueNode>(ast::token::NilToken())));
+		cn->children.push_back(make<ast::AssignValueNode>($2, $3));
+		cn->addScope = false;
+		$$ = cn;
+ }
 | LOCAL FUNCTION Name funcbody {
 		auto cn = make<ast::ChunkNode>();
 		cn->children.push_back(make<ast::LocalAssignValueNode>($3, make<ast::ValueNode>(ast::token::NilToken())));
@@ -140,6 +147,9 @@ stat : var EQUALS exp { $$ = make<ast::AssignValueNode>($1, $3); }
  }
 | LOCAL Name { $$ = make<ast::LocalAssignValueNode>($2, make<ast::ValueNode>(ast::token::NilToken())); }
 | LOCAL Name EQUALS exp { $$ = make<ast::LocalAssignValueNode>($2, $4); }
+| FOR Name EQUALS exp COMMA exp DO block END { $$ = make<ast::ForLoopNode>($2, $4, $6, $8); }
+| IF exp THEN block END { $$ = make<ast::IfNode>($2, $4, make<ast::ChunkNode>()); }
+| IF exp THEN block ELSE block END { $$ = make<ast::IfNode>($2, $4, $6); }
 ;
 
 laststat : RETURN { $$ = make<ast::ReturnNode>(); }
@@ -147,11 +157,11 @@ laststat : RETURN { $$ = make<ast::ReturnNode>(); }
 | BREAK { $$ = make<ast::BreakNode>(); }
 ;
 
-funcnamePart : Name { $$ = make<ast::VariableRefNode>($1); }
+funcnamePart : Name { $$ = $1; }
 | funcnamePart DOT Name { $$ = make<ast::IndexOfNode>($1, $3); }
 ;
 
-funcname : funcnamePart { $$ = make<ast::VariableRefNode>($1); }
+funcname : funcnamePart { $$ = $1; }
 ;
 
 var : Name { $$ = $1; }
@@ -216,8 +226,8 @@ functioncall : prefixexp args { $$ = make<ast::FunctionCallNode>($1, $2); }
 
 args : PARENTHESIS_OPEN PARENTHESIS_CLOSE { $$ = make<ast::ExpressionListNode>(); }
 | PARENTHESIS_OPEN explist PARENTHESIS_CLOSE { $$ = $2; }
-| tableconstructor { $$ = $1; }
-| String { $$ = $1; }
+| tableconstructor { $$ = make<ast::ExpressionListNode>(); $$->children.push_back($1); }
+| String { $$ = make<ast::ExpressionListNode>(); $$->children.push_back($1); }
 ;
 
 function : FUNCTION funcbody { $$ = $2; }
@@ -232,7 +242,7 @@ parlist : namelist { $$ = $1; }
 | VARIABLE_LIST { $$ = make<ast::NameListNode>(); $$->children.push_back(make<ast::ValueNode>($1)); }
 ;
 
-tableconstructor : LIST_OPEN LIST_CLOSE { $$ = make<ast::TableNode>(); }
+tableconstructor : LIST_OPEN LIST_CLOSE { $$ = make<ast::TableNode>( $$ = make<ast::FieldListNode>()); }
 | LIST_OPEN fieldlist LIST_CLOSE { $$ = make<ast::TableNode>($2); }
 ;
 
@@ -244,9 +254,7 @@ fieldlist : fieldlistParts { $$ = $1; }
 | fieldlistParts fieldsep { $$ = $1; }
 ;
 
-field : SQUARE_OPEN exp SQUARE_CLOSE EQUALS exp { $$ = make<ast::AssignValueNode>(make<ast::IndexOfNode>(make<ast::ValueNode>(ast::token::NilToken()), $2), $5); }
-| Name EQUALS exp { $$ = make<ast::AssignValueNode>($1, $3); }
-| exp { $$ = $1; }
+field : exp { $$ = $1; }
 ;
 
 fieldsep : COMMA {}

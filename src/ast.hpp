@@ -24,7 +24,7 @@ namespace ast {
 			id = idCounter++;
 		}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) = 0;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) = 0;
 
 		virtual void print(std::ostream& out, int indent = 0) {
 			for (int i = 0; i < indent; i++)
@@ -55,7 +55,7 @@ namespace ast {
 		StringNode() {}
 		StringNode(ast::token::QuotedToken text) : value(text.value) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 
 		virtual std::string toString() override {
 			return Node::toString() + ": " + value;
@@ -66,7 +66,7 @@ namespace ast {
 	public:
 		NilNode() {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class BoolNode : public Node {
@@ -76,7 +76,7 @@ namespace ast {
 		BoolNode() {}
 		BoolNode(bool value) : value(value) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 
 		virtual std::string toString() override {
 			return Node::toString() + ": " + std::to_string(value);
@@ -91,7 +91,7 @@ namespace ast {
 		NumberNode(double value) : value(value) {}
 		NumberNode(ast::token::NumberToken text) : value(text.value) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 
 		virtual std::string toString() override {
 			return Node::toString() + ": " + std::to_string(value);
@@ -103,7 +103,7 @@ namespace ast {
 		RootNode() {}
 		RootNode(std::initializer_list<NodePtr> l) : Node(l) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class ChunkNode : public Node {
@@ -113,7 +113,7 @@ namespace ast {
 
 		bool addScope = true;
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class ReturnNode : public Node {
@@ -123,12 +123,12 @@ namespace ast {
 		ReturnNode() {};
 		ReturnNode(NodePtr returnValue) : Node{returnValue} {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class BreakNode : public Node {
 	public:
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class LocalAssignValueNode : public Node {
@@ -139,7 +139,7 @@ namespace ast {
 		LocalAssignValueNode() {};
 		LocalAssignValueNode(NodePtr key, NodePtr value) : Node{key, value} {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class AssignValueNode : public Node {
@@ -150,7 +150,7 @@ namespace ast {
 		AssignValueNode() {};
 		AssignValueNode(NodePtr key, NodePtr value) : Node{key, value} {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class VariableRefNode : public Node {
@@ -163,7 +163,7 @@ namespace ast {
 		VariableRefNode(NodePtr variable) : Node{variable}, isToken(false) {}
 		VariableRefNode(ast::token::NameToken name) : Node{}, name(name), isToken(true) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 
 		virtual std::string toString() override {
 			if (!isToken)
@@ -180,7 +180,7 @@ namespace ast {
 		IndexOfNode() {};
 		IndexOfNode(NodePtr object, NodePtr index) : Node{object, index} {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class ExpressionListNode : public Node {
@@ -188,7 +188,7 @@ namespace ast {
 		ExpressionListNode() {}
 		ExpressionListNode(std::initializer_list<NodePtr> l) : Node(l) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class NameListNode : public Node {
@@ -196,7 +196,7 @@ namespace ast {
 		NameListNode() {}
 		NameListNode(std::initializer_list<NodePtr> l) : Node(l) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class FieldListNode : public Node {
@@ -204,7 +204,7 @@ namespace ast {
 		FieldListNode() {}
 		FieldListNode(std::initializer_list<NodePtr> l) : Node(l) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class ValueNode : public Node {
@@ -215,7 +215,7 @@ namespace ast {
 		template <typename T>
 		ValueNode(T value) : value{new T(value)} {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 
 		virtual std::string toString() override {
 			int status;
@@ -235,7 +235,7 @@ namespace ast {
 		BinOPNode(NodePtr left, ast::token::BinOPToken op, NodePtr right) : Node{left, right}, op(op) {}
 		BinOPNode(NodePtr left, ast::token::MinusOPToken op, NodePtr right) : Node{left, right}, op(ast::token::BinOPToken(ast::token::BinOPToken::OP::minus)) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 
 		virtual std::string toString() override {
 			return Node::toString() + ": " + op.toString();
@@ -251,7 +251,7 @@ namespace ast {
 		UnOPNode(ast::token::UnOPToken op, NodePtr right) : Node{right}, op(op) {}
 		UnOPNode(ast::token::MinusOPToken, NodePtr right) : Node{right}, op(ast::token::UnOPToken{ast::token::UnOPToken::OP::minus}) {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 
 		virtual std::string toString() override {
 			return Node::toString() + ": " + op.toString();
@@ -266,12 +266,12 @@ namespace ast {
 		FunctionCallNode() {};
 		FunctionCallNode(NodePtr function, NodePtr arguments) : Node{function, arguments} {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class FunctionNode : public Node {
 	public:
-		typedef NodePtr (*ExternalFunction_t)(std::shared_ptr<ast::ExpressionListNode> arguments);
+		typedef std::shared_ptr<ReturnNode> (*ExternalFunction_t)(std::shared_ptr<ast::ExpressionListNode> arguments);
 		NodePtr arguments() { return children[0]; }
 		NodePtr body() { return children[1]; }
 
@@ -281,7 +281,7 @@ namespace ast {
 
 		ExternalFunction_t externalFunction = nullptr;
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
 	class TableNode : public Node {
@@ -291,7 +291,31 @@ namespace ast {
 		TableNode() {};
 		TableNode(NodePtr table) : Node{table} {}
 
-		virtual std::shared_ptr<Node> visit(Scope& scope) override;
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
+	class ForLoopNode : public Node {
+	public:
+		NodePtr counter() { return children[0]; }
+		NodePtr from() { return children[1]; }
+		NodePtr to() { return children[2]; }
+		NodePtr body() { return children[3]; }
+
+		ForLoopNode() {};
+		ForLoopNode(NodePtr counter, NodePtr from, NodePtr to, NodePtr body) : Node{counter, from, to, body} {}
+
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
+	};
+
+	class IfNode : public Node {
+	public:
+		NodePtr check() { return children[0]; }
+		NodePtr body() { return children[1]; }
+		NodePtr elseBody() { return children[2]; }
+
+		IfNode() {};
+		IfNode(NodePtr check, NodePtr body, NodePtr elseBody) : Node{check, body, elseBody} {}
+
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
+	};
 }

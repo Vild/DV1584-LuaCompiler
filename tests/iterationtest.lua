@@ -1,6 +1,6 @@
 iterationCounter = 0
 
-function fun(a, b)
+function func(a, b)
 	iterationCounter = iterationCounter + 1
 	if b == 0 then
 		 return 0
@@ -10,4 +10,4 @@ function fun(a, b)
 	return x + y
 end
 
-func(13, 37)
+print(func(13, 37))

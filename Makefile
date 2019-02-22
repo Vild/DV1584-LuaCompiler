@@ -16,7 +16,7 @@ TARGETS := $(ASS1)
 TESTS := $(OBJ)tests/base.svg
 # $(foreach testProgram,$(shell find tests -iname "*.lua"), $(OBJ)$(testProgram:.lua=.svg))
 
-CXXFLAGS := -std=c++14
+CXXFLAGS := -std=c++11
 #-Wall -Wextra
 
 include utils.mk
@@ -61,12 +61,12 @@ clean:
 	@$(RM) -rf $(OBJ)
 	@$(call END,$(BLUE),"  -\> RM","$(OBJ)")
 
-.depend: $(ASS1_SOURCES) $(ASS1_HEADERS)
-	@$(call INFO,"::","Generating dependencies...");
-	@$(call BEG,$(BLUE),"  -\> RM","$(BIN)")
-	@$(RM) -rf ./.depend
-	@$(call END,$(BLUE),"  -\> RM","$(BIN)")
-	@$(call BEG,$(BLUE),"  -\> makedepend","$@ \<-- $(ASS1_SOURCES)")
-	@makedepend -- -Isrc -Iobj -- $(ASS1_SOURCES) -f- 2>/dev/null > $@
-	@$(call END,$(BLUE),"  -\> makedepend","$@ \<-- $(ASS1_SOURCES)")
-include .depend
+# .depend: $(ASS1_SOURCES) $(ASS1_HEADERS)
+# 	@$(call INFO,"::","Generating dependencies...");
+# 	@$(call BEG,$(BLUE),"  -\> RM","$(BIN)")
+# 	@$(RM) -rf ./.depend
+# 	@$(call END,$(BLUE),"  -\> RM","$(BIN)")
+# 	@$(call BEG,$(BLUE),"  -\> makedepend","$@ \<-- $(ASS1_SOURCES)")
+# 	@makedepend -- -Isrc -Iobj -- $(ASS1_SOURCES) -f- 2>/dev/null > $@
+# 	@$(call END,$(BLUE),"  -\> makedepend","$@ \<-- $(ASS1_SOURCES)")
+# include .depend

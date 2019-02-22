@@ -30,17 +30,17 @@ int main(int argc, char** argv) {
 	if (parser.parse())
 		return 1;
 
-	std::cout << "Built a parse-tree:" << std::endl;
+	//std::cout << "Built a parse-tree:" << std::endl;
 
-	root->print(std::cout);
+	//root->print(std::cout);
 
-	std::ofstream out("graph.dot");
+	std::ofstream out("parse.dot");
 	out << "digraph G {"  << std::endl;
 	root->toDot(out);
 	out << "}";
 	out.close();
 
-	std::cout << "Evaluating:" << std::endl;
+	//std::cout << "Evaluating:" << std::endl;
 
 	evaluate(root);
 
