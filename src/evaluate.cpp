@@ -105,9 +105,48 @@ static std::shared_ptr<ast::ReturnNode> builtin_io_write(std::shared_ptr<ast::Ex
 		auto string = std::dynamic_pointer_cast<ast::StringNode>(child);
 		if (number)
 			std::cout << std::fixed << std::setprecision(1) << number->value;
-		else if (string)
-			std::cout << string->value;
-		else
+		else if (string) {
+			//std::string str = string->value;
+			//std::replace(str.begin(), str.end(), '+', ' ');
+			//std::cout << str;
+			bool nextIsSeq = false;
+			for (char ch : string->value) {
+				if (nextIsSeq) {
+					switch (ch) {
+					case 'a':
+						std::cout << '\a';
+						break;
+					case 'b':
+						std::cout << '\b';
+						break;
+					case 'f':
+						std::cout << '\f';
+						break;
+					case 'n':
+						std::cout << '\n';
+						break;
+					case 'r':
+						std::cout << '\r';
+						break;
+					case 't':
+						std::cout << '\t';
+						break;
+					case 'v':
+						std::cout << '\v';
+						break;
+					default:
+						std::cout << ch;
+						break;
+					}
+					nextIsSeq = false;
+					continue;
+				}
+				if (ch == '\\')
+					nextIsSeq = true;
+				else
+					std::cout << ch;
+			}
+		} else
 			std::cout << "<UNK>" << child->toString() << "</UNK>";
 	}
 	return std::make_shared<ast::ReturnNode>(nilNode);
