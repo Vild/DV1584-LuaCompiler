@@ -199,14 +199,6 @@ namespace ast {
 		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
-	class FieldListNode : public Node {
-	public:
-		FieldListNode() {}
-		FieldListNode(std::initializer_list<NodePtr> l) : Node(l) {}
-
-		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
-	};
-
 	class ValueNode : public Node {
 	public:
 		std::unique_ptr<ast::token::Token> value;
@@ -286,10 +278,7 @@ namespace ast {
 
 	class TableNode : public Node {
 	public:
-		NodePtr table() { return children[0]; }
-
 		TableNode() {};
-		TableNode(NodePtr table) : Node{table} {}
 
 		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
@@ -315,6 +304,17 @@ namespace ast {
 
 		IfNode() {};
 		IfNode(NodePtr check, NodePtr body, NodePtr elseBody) : Node{check, body, elseBody} {}
+
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
+	};
+
+	class RepeatNode : public Node {
+	public:
+		NodePtr body() { return children[0]; }
+		NodePtr check() { return children[1]; }
+
+		RepeatNode() {};
+		RepeatNode(NodePtr body, NodePtr check) : Node{body, check} {}
 
 		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};

@@ -150,6 +150,7 @@ stat : var EQUALS exp { $$ = make<ast::AssignValueNode>($1, $3); }
 | FOR Name EQUALS exp COMMA exp DO block END { $$ = make<ast::ForLoopNode>($2, $4, $6, $8); }
 | IF exp THEN block END { $$ = make<ast::IfNode>($2, $4, make<ast::ChunkNode>()); }
 | IF exp THEN block ELSE block END { $$ = make<ast::IfNode>($2, $4, $6); }
+| REPEAT block UNTIL exp { $$ = make<ast::RepeatNode>($2, $4); }
 ;
 
 laststat : RETURN { $$ = make<ast::ReturnNode>(); }
@@ -242,11 +243,11 @@ parlist : namelist { $$ = $1; }
 | VARIABLE_LIST { $$ = make<ast::NameListNode>(); $$->children.push_back(make<ast::ValueNode>($1)); }
 ;
 
-tableconstructor : LIST_OPEN LIST_CLOSE { $$ = make<ast::TableNode>( $$ = make<ast::FieldListNode>()); }
-| LIST_OPEN fieldlist LIST_CLOSE { $$ = make<ast::TableNode>($2); }
+tableconstructor : LIST_OPEN LIST_CLOSE { $$ = make<ast::TableNode>(); }
+| LIST_OPEN fieldlist LIST_CLOSE { $$ = $2; }
 ;
 
-fieldlistParts : field { $$ = make<ast::FieldListNode>(); $$->children.push_back($1); }
+fieldlistParts : field { $$ = make<ast::TableNode>(); $$->children.push_back($1); }
 | fieldlistParts fieldsep field { $$ = $1; $$->children.push_back($3); }
 ;
 

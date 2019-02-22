@@ -15,8 +15,8 @@ static int indent = 0;
 struct Debug {
 	Debug(const char* func, Scope& scope) {
 		//scope.print();
-		/*indent++;
-		for (int i = 0; i < indent; i++) std::cout << "  ";
+		indent++;
+		/* for (int i = 0; i < indent; i++) std::cout << "  ";
 		std::cout << func << std::endl;*/
 	}
 	~Debug() { indent--; }
@@ -252,8 +252,13 @@ std::shared_ptr<ast::Node> ast::BinOPNode::visit(ast::NodePtr self, Scope& scope
 				char* err = nullptr;
 				ret.first = strtod(str, &err);
 				expect(str != err, "Left does not contain a number!");
-			} else
-				expect(0, (std::string("Left is not a number or string it is: ") + l->toString()).c_str());
+			} else {
+				auto b1 = dynamic_cast<ast::BoolNode*>(l.get());
+				if (b1)
+					ret.first = b1->value ? 1 : 0;
+				else
+					expect(0, (std::string("Left is not a number, string or bool it is: ") + l->toString()).c_str());
+			}
 		}
 
 		auto n2 = dynamic_cast<ast::NumberNode*>(r.get());
@@ -266,8 +271,13 @@ std::shared_ptr<ast::Node> ast::BinOPNode::visit(ast::NodePtr self, Scope& scope
 				char* err = nullptr;
 				ret.second = strtod(str, &err);
 				expect(str != err, "Right does not contain a number!");
-			} else
-				expect(0, (std::string("Right is not a number or string it is: ") + r->toString()).c_str());
+			} else {
+				auto b2 = dynamic_cast<ast::BoolNode*>(r.get());
+				if (b2)
+					ret.second = b2->value ? 1 : 0;
+				else
+					expect(0, (std::string("Right is not a number, string or bool it is: ") + r->toString()).c_str());
+			}
 
 		}
 		return ret;
@@ -490,12 +500,29 @@ std::shared_ptr<ast::Node> ast::IndexOfNode::visit(ast::NodePtr self, Scope& sco
 		obj = scope.get(obj);
 	}
 
-	{
-		auto o = std::dynamic_pointer_cast<Object>(obj);
-		if (o) {
-			auto val = o->get(idx);
-			return val->visit(val, scope);
+	auto o = std::dynamic_pointer_cast<Object>(obj);
+	if (o) {
+		auto val = o->get(idx);
+		return val->visit(val, scope);
+	}
+
+	auto table = std::dynamic_pointer_cast<ast::TableNode>(obj);
+	if (table) {
+		ast::NodePtr tmp = idx;
+		std::shared_ptr<ast::NumberNode> idxNode;
+		{
+			auto ref = std::dynamic_pointer_cast<ast::VariableRefNode>(tmp);
+			if (ref)
+				tmp = scope.get(ref);
+
+			idxNode = std::dynamic_pointer_cast<ast::NumberNode>(tmp);
 		}
+		expect(idxNode, "Index is not a number");
+
+		expect(idxNode->value == (int)idxNode->value, "Index is not a whole number");
+
+		auto child = table->children[(int)idxNode->value - 1 /* Lua indicies start at 1 */];
+		return child->visit(child, scope);
 	}
 
 	return nilNode;
@@ -526,11 +553,39 @@ std::shared_ptr<ast::Node> ast::RootNode::visit(ast::NodePtr self, Scope& scope)
 
 std::shared_ptr<ast::Node> ast::TableNode::visit(ast::NodePtr self, Scope& scope) {
 	debug();
-	return table()->visit(table(), scope);
+	return self;
 }
 
 std::shared_ptr<ast::Node> ast::UnOPNode::visit(ast::NodePtr self, Scope& scope) {
 	debug();
+
+	std::shared_ptr<ast::Node> val = value()->visit(value(), scope);
+	{
+		auto var = std::dynamic_pointer_cast<ast::VariableRefNode>(val);
+		if (var)
+			val = scope.get(var);
+	}
+
+	using OP = ast::token::UnOPToken::OP;
+
+	switch (op.op) {
+	case OP::UNK: {
+		expect(0, "OP::UNK");
+		break;
+	}
+	case OP::not_: {
+		auto boolN = std::dynamic_pointer_cast<ast::BoolNode>(val);
+		return std::make_shared<ast::BoolNode>(boolN->value);
+	}
+	case OP::pound: {
+		return std::make_shared<ast::NumberNode>(val->children.size());
+		break;
+	}
+	case OP::minus: {
+		auto number = std::dynamic_pointer_cast<ast::NumberNode>(val);
+		return std::make_shared<ast::NumberNode>(-number->value);
+	}
+	}
 	return nilNode;
 }
 
@@ -549,11 +604,6 @@ std::shared_ptr<ast::Node> ast::NameListNode::visit(ast::NodePtr self, Scope& sc
 	return self;
 }
 
-std::shared_ptr<ast::Node> ast::FieldListNode::visit(ast::NodePtr self, Scope& scope) {
-	debug();
-	return self;
-}
-
 std::shared_ptr<ast::Node> ast::VariableRefNode::visit(ast::NodePtr self, Scope& scope) {
 	debug();
 	return self;
@@ -566,7 +616,7 @@ std::shared_ptr<ast::Node> ast::ForLoopNode::visit(ast::NodePtr self, Scope& sco
 
 	double from, to;
 	{
-		ast::NodePtr fromNode = this->from();
+		ast::NodePtr fromNode = this->from()->visit(this->from(), scope);
 		auto ref = std::dynamic_pointer_cast<ast::VariableRefNode>(fromNode);
 		if (ref)
 			fromNode = scope.get(ref);
@@ -575,7 +625,7 @@ std::shared_ptr<ast::Node> ast::ForLoopNode::visit(ast::NodePtr self, Scope& sco
 		from = fromN->value;
 	}
 	{
-		ast::NodePtr toNode = this->to();
+		ast::NodePtr toNode = this->to()->visit(this->to(), scope);
 		auto ref = std::dynamic_pointer_cast<ast::VariableRefNode>(toNode);
 		if (ref)
 			toNode = scope.get(ref);
@@ -586,7 +636,20 @@ std::shared_ptr<ast::Node> ast::ForLoopNode::visit(ast::NodePtr self, Scope& sco
 
 	for (double idx = from; idx <= to; idx += 1) {
 		loopScope.set(counter(), std::make_shared<ast::NumberNode>(idx));
-		body()->visit(body(), loopScope);
+		auto obj = body()->visit(body(), loopScope);
+
+		auto breakN = std::dynamic_pointer_cast<ast::BreakNode>(obj);
+		if (breakN)
+			return std::make_shared<ast::ReturnNode>(nilNode);
+
+		auto returnN = std::dynamic_pointer_cast<ast::ReturnNode>(obj);
+		if (returnN) {
+			auto val = returnN->returnValue()->visit(returnN->returnValue(), loopScope);
+			auto ref = std::dynamic_pointer_cast<ast::VariableRefNode>(val);
+			if (ref)
+				val = loopScope.get(ref);
+			return std::make_shared<ast::ReturnNode>(val);
+		}
 	}
 
 	return nilNode;
@@ -604,4 +667,30 @@ std::shared_ptr<ast::Node> ast::IfNode::visit(ast::NodePtr self, Scope& scope) {
 		return body()->visit(body(), scope);
 	else
 		return elseBody()->visit(elseBody(), scope);
+}
+
+std::shared_ptr<ast::Node> ast::RepeatNode::visit(ast::NodePtr self, Scope& scope) {
+	debug();
+
+	while (true) {
+		auto obj = body()->visit(body(), scope);
+
+		auto breakN = std::dynamic_pointer_cast<ast::BreakNode>(obj);
+		if (breakN)
+			return std::make_shared<ast::ReturnNode>(nilNode);
+
+		auto returnN = std::dynamic_pointer_cast<ast::ReturnNode>(obj);
+		if (returnN) {
+			auto val = returnN->returnValue()->visit(returnN->returnValue(), scope);
+			auto ref = std::dynamic_pointer_cast<ast::VariableRefNode>(val);
+			if (ref)
+				val = scope.get(ref);
+			return std::make_shared<ast::ReturnNode>(val);
+		}
+
+		ast::NodePtr check = this->check()->visit(this->check(), scope);
+		auto boolCheck = std::dynamic_pointer_cast<ast::BoolNode>(check);
+		if (boolCheck->value)
+			return nilNode;
+	}
 }
