@@ -75,7 +75,7 @@ loc.step();
 [[:blank:]\r\n]+           { loc.step(); }
 <INITIAL>([[:digit:]]+)(\.[[:digit:]]+)?    { return yy::parser::make_NUMBER({yytext}, loc); }
 <INITIAL>([[:alpha:]_][[:alnum:]_]*)     { return yy::parser::make_NAME({yytext}, loc); }
-<QUOTE>(\\.|[^\"\\$=])+    { return yy::parser::make_QUOTED({yytext}, loc); }
+<QUOTE>(\\.|[^\"])+    { return yy::parser::make_QUOTED({yytext}, loc); }
 <<EOF>>                    { return yy::parser::make_EndOfFile(loc); }
 .                          { throw yy::parser::syntax_error(loc, "invalid character: " + std::string(yytext)); }
 %%

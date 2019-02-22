@@ -136,3 +136,7 @@ funcname : funcnamePart { $$ = make<VariableRefNode>($1); }
 | exp Binop exp { $$ = make<ast::BinOPNode>($1, $2, $3); }
 
 %type <ast::token::BinOPToken> Binop
+* 
+
+				 io.write("list[", i, "], list[", i + 1, "] = list[", i + 1, "], list[", i, "]\n")
+				 print(list[i], ", ", list[i + 1], " = ", list[i + 1], ", ", list[i], "]\n")

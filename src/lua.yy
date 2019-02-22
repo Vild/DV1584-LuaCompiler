@@ -77,7 +77,7 @@ YY_DECL;
 %type <std::shared_ptr<ast::NumberNode>> Number
 
 %type <std::shared_ptr<ast::RootNode>> root
-%type <ast::NodePtr> block stat laststat lastChunkStatement chunkStatement funcnamePart funcname var namelist explist exp prefixexp functioncall args function funcbody parlist tableconstructor fieldlistParts fieldlist field fieldsep expBinOPexp unopExp
+%type <ast::NodePtr> block stat laststat lastChunkStatement chunkStatement funcnamePart funcname var namelist explist exp prefixexp functioncall args function funcbody parlist tableconstructor fieldlistParts fieldlist field fieldsep expBinOPexp unopExp varlist
 %type <std::shared_ptr<ast::ChunkNode>> chunk
 %type <std::vector<ast::NodePtr>> chunkStatements
 
@@ -129,12 +129,20 @@ chunkStatement : stat { $$ = $1; }
 ;
 
 
-stat : var EQUALS exp { $$ = make<ast::AssignValueNode>($1, $3); }
+stat : varlist EQUALS explist { $$ = make<ast::AssignValuesNode>($1, $3); }
 | functioncall { $$ = $1; }
 | FUNCTION funcname funcbody {
 		auto cn = make<ast::ChunkNode>();
-		cn->children.push_back(make<ast::AssignValueNode>($2, make<ast::ValueNode>(ast::token::NilToken())));
-		cn->children.push_back(make<ast::AssignValueNode>($2, $3));
+		auto var = make<ast::VariableListNode>();
+		var->children.push_back($2);
+
+		auto nilExp = make<ast::ExpressionListNode>();
+		nilExp->children.push_back(make<ast::ValueNode>(ast::token::NilToken()));
+		auto valExp = make<ast::ExpressionListNode>();
+		valExp->children.push_back($3);
+
+		cn->children.push_back(make<ast::AssignValuesNode>(var, nilExp));
+		cn->children.push_back(make<ast::AssignValuesNode>(var, valExp));
 		cn->addScope = false;
 		$$ = cn;
  }
@@ -151,6 +159,10 @@ stat : var EQUALS exp { $$ = make<ast::AssignValueNode>($1, $3); }
 | IF exp THEN block END { $$ = make<ast::IfNode>($2, $4, make<ast::ChunkNode>()); }
 | IF exp THEN block ELSE block END { $$ = make<ast::IfNode>($2, $4, $6); }
 | REPEAT block UNTIL exp { $$ = make<ast::RepeatNode>($2, $4); }
+;
+
+varlist : var { $$ = make<ast::VariableListNode>(); $$->children.push_back($1); }
+| varlist COMMA var { $$ = $1; $$->children.push_back($3); }
 ;
 
 laststat : RETURN { $$ = make<ast::ReturnNode>(); }

@@ -142,13 +142,13 @@ namespace ast {
 		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
-	class AssignValueNode : public Node {
+	class AssignValuesNode : public Node {
 	public:
-		NodePtr key() { return children[0]; }
-		NodePtr value() { return children[1]; }
+		NodePtr keys() { return children[0]; }
+		NodePtr values() { return children[1]; }
 
-		AssignValueNode() {};
-		AssignValueNode(NodePtr key, NodePtr value) : Node{key, value} {}
+		AssignValuesNode() {};
+		AssignValuesNode(NodePtr keys, NodePtr values) : Node{keys, values} {}
 
 		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
@@ -183,10 +183,16 @@ namespace ast {
 		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};
 
+	class VariableListNode : public Node {
+	public:
+		VariableListNode() {}
+
+		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
+	};
+
 	class ExpressionListNode : public Node {
 	public:
 		ExpressionListNode() {}
-		ExpressionListNode(std::initializer_list<NodePtr> l) : Node(l) {}
 
 		virtual std::shared_ptr<Node> visit(ast::NodePtr self, Scope& scope) override;
 	};

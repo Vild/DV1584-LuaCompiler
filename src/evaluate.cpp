@@ -16,8 +16,7 @@ struct Debug {
 	Debug(const char* func, Scope& scope) {
 		//scope.print();
 		indent++;
-		/* for (int i = 0; i < indent; i++) std::cout << "  ";
-		std::cout << func << std::endl;*/
+		//for (int i = 0; i < indent; i++) std::cout << "  "; std::cout << func << std::endl;
 	}
 	~Debug() { indent--; }
 };
@@ -56,9 +55,60 @@ void Scope::print() {
 }
 
 void Scope::set(std::shared_ptr<ast::Node> key, std::shared_ptr<ast::Node> value) {
+	//std::cout << "set(key: " << key->toString() << "\tvalue: " << value->toString() << std::endl;
+	std::shared_ptr<ast::IndexOfNode> index = std::dynamic_pointer_cast<ast::IndexOfNode>(key);
+	if (index) {
+		std::shared_ptr<ast::TableNode> tbl = std::dynamic_pointer_cast<ast::TableNode>(get(index->object()->visit(index->object(), *this)));
+		if (tbl) {
+			ast::NodePtr tmp = index->index()->visit(index->index(), *this);
+			std::shared_ptr<ast::NumberNode> idxNode;
+			{
+				auto ref = std::dynamic_pointer_cast<ast::VariableRefNode>(tmp);
+				if (ref)
+					tmp = get(ref);
+
+				idxNode = std::dynamic_pointer_cast<ast::NumberNode>(tmp);
+			}
+			expect(idxNode, "Index is not a number");
+
+			expect(idxNode->value == (int)idxNode->value, "Index is not a whole number");
+
+			//std::cout << "setting " << (int)idxNode->value - 1 << " to " << value->toString() << std::endl;
+			tbl->children[(int)idxNode->value - 1] = value;
+			return;
+		} else
+			expect(0, "Assigning to IndexOf is only supported on tables");
+	}
+
 	environment[key->toString()] = value;
 }
 void Scope::searchAndSet(std::shared_ptr<ast::Node> key, std::shared_ptr<ast::Node> value) {
+	//std::cout << "searchAndSet(key: " << key->toString() << "\tvalue: " << value->toString() << std::endl;
+	std::shared_ptr<ast::IndexOfNode> index = std::dynamic_pointer_cast<ast::IndexOfNode>(key);
+	if (index) {
+		//std::cout << "\tindex(object: " << index->object()->toString() << "\tindex: " << index->index()->toString() << ")" << std::endl;
+		std::shared_ptr<ast::TableNode> tbl = std::dynamic_pointer_cast<ast::TableNode>(get(index->object()->visit(index->object(), *this)));
+		if (tbl) {
+			ast::NodePtr tmp = index->index()->visit(index->index(), *this);
+			std::shared_ptr<ast::NumberNode> idxNode;
+			{
+				auto ref = std::dynamic_pointer_cast<ast::VariableRefNode>(tmp);
+				if (ref)
+					tmp = get(ref);
+
+				idxNode = std::dynamic_pointer_cast<ast::NumberNode>(tmp);
+			}
+			expect(idxNode, "Index is not a number");
+
+			expect(idxNode->value == (int)idxNode->value, "Index is not a whole number");
+
+			//std::cout << "setting " << (int)idxNode->value << " to " << value->toString() << std::endl;
+			tbl->children[(int)idxNode->value - 1] = value;
+			return;
+		} else
+			expect(0, "Assigning to IndexOf is only supported on tables");
+	}
+
 	auto str = key->toString();
 	auto it = environment.find(str);
 	if (it != environment.end())
@@ -213,12 +263,30 @@ std::shared_ptr<ast::Node> ast::NilNode::visit(ast::NodePtr self, Scope& scope) 
 	return self;
 }
 
-std::shared_ptr<ast::Node> ast::AssignValueNode::visit(ast::NodePtr self, Scope& scope) {
+std::shared_ptr<ast::Node> ast::AssignValuesNode::visit(ast::NodePtr self, Scope& scope) {
 	debug();
 
-	auto key = this->key()->visit(this->key(), scope);
-	auto value = this->value()->visit(this->value(), scope);
-	scope.searchAndSet(key, value);
+	auto keys = std::dynamic_pointer_cast<ast::VariableListNode>(this->keys()->visit(this->keys(), scope));
+	auto values = std::dynamic_pointer_cast<ast::ExpressionListNode>(this->values()->visit(this->values(), scope));
+
+	expect(keys->children.size() == values->children.size(), "keys and values does not have same size!");
+
+	std::vector<ast::NodePtr> visitedValues;
+	visitedValues.resize(values->children.size());
+
+	for (int i = 0; i < values->children.size(); i++) {
+		ast::NodePtr child = values->children[i];
+		child = child->visit(child, scope);
+
+		auto ref = std::dynamic_pointer_cast<ast::VariableRefNode>(child);
+		if (ref)
+			child = scope.get(ref);
+		visitedValues[i] = child;
+	}
+
+	for (int i = 0; i < keys->children.size(); i++) {
+		scope.searchAndSet(keys->children[i], visitedValues[i]);
+	}
 
 	return nilNode;
 }
@@ -590,6 +658,11 @@ std::shared_ptr<ast::Node> ast::UnOPNode::visit(ast::NodePtr self, Scope& scope)
 }
 
 std::shared_ptr<ast::Node> ast::ValueNode::visit(ast::NodePtr self, Scope& scope) {
+	debug();
+	return self;
+}
+
+std::shared_ptr<ast::Node> ast::VariableListNode::visit(ast::NodePtr self, Scope& scope) {
 	debug();
 	return self;
 }
