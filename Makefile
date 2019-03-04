@@ -1,13 +1,12 @@
-PROJECT := DV1584-Assignment1
+PROJECT := DV1584-Assignment2
 SHELL = bash
 
 # == Directories ==
 
 SRC=src/
 OBJ=obj/
-BIN=bin/
 
-ASS1 := ./int
+ASS1 := ./comp
 ASS1_SOURCES := $(SRC)main.cpp $(SRC)evaluate.cpp $(OBJ)lua.tab.cpp $(OBJ)lua.yy.cpp
 ASS1_HEADERS := $(SRC)ast.hpp $(SRC)token.hpp $(SRC)evaluate.hpp $(SRC)expect.hpp $(OBJ)lua.tab.hpp
 ASS1_OBJECTS := $(OBJ)lua.tab.o $(OBJ)lua.yy.o $(OBJ)main.o $(OBJ)evaluate.o
@@ -60,11 +59,13 @@ clean:
 	@$(RM) -rf $(OBJ)
 	@$(call END,$(BLUE),"  -\> RM","$(OBJ)")
 
+$(OBJ)location.hh $(OBJ)position.hh $(OBJ)stack.hh: $(OBJ)lua.tab.cpp
+
 .depend: $(ASS1_SOURCES) $(ASS1_HEADERS)
 	@$(call INFO,"::","Generating dependencies...");
-	@$(call BEG,$(BLUE),"  -\> RM","$(BIN)")
-	@$(RM) -rf ./.depend
-	@$(call END,$(BLUE),"  -\> RM","$(BIN)")
+	@$(call BEG,$(BLUE),"  -\> RM","$@")
+	@$(RM) -rf ./$@
+	@$(call END,$(BLUE),"  -\> RM","$@")
 	@$(call BEG,$(BLUE),"  -\> makedepend","$@ \<-- $(ASS1_SOURCES)")
 	@makedepend -- -Isrc -Iobj -- $(ASS1_SOURCES) -f- 2>/dev/null > $@
 	@$(call END,$(BLUE),"  -\> makedepend","$@ \<-- $(ASS1_SOURCES)")

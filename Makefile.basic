@@ -1,16 +1,32 @@
-CXXFLAGS := -std=c++11  -Isrc/ -Iobj/ -g
+CXX ?= g++
+FLEX ?= flex
+BISON ?= bison
 
-all: int
+CXXFLAGS := -std=c++11 -Isrc/ -Iobj/ -g
+
+SRC=src/
+OBJ=obj/
+
+all: comp
 
 clean:
-	rm -rf obj/ int
+	rm -rf obj/ comp
 
-int:
-	mkdir -p obj/
-	bison -y --report=state --graph --warning=all -d -o obj/lua.tab.cpp src/lua.yy
-	flex -o obj/lua.yy.cpp src/lua.ll
-	g++ -c obj/lua.tab.cpp -o obj/lua.tab.o $(CXXFLAGS)
-	g++ -c obj/lua.yy.cpp -o obj/lua.yy.o $(CXXFLAGS)
-	g++ -c src/main.cpp -o obj/main.o $(CXXFLAGS)
-	g++ -c src/evaluate.cpp -o obj/evaluate.o $(CXXFLAGS)
-	g++ obj/lua.tab.o obj/lua.yy.o obj/main.o obj/evaluate.o -o int
+comp: $(OBJ)lua.tab.o $(OBJ)lua.yy.o $(OBJ)main.o $(OBJ)evaluate.o
+	g++ $^ -o $@
+
+$(OBJ)%.tab.cpp $(OBJ)%.tab.hpp: $(SRC)%.yy
+	@mkdir -p $(dir $@)
+	$(BISON) -y --report=state --warning=all -d -o $@ $^ $(ERRORS)
+
+$(OBJ)%.yy.cpp: $(SRC)%.ll
+	@mkdir -p $(dir $@)
+	$(FLEX) -o $@ $^ $(ERRORS)
+
+$(OBJ)%.o: $(SRC)%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) -c $< -o $@ $(CXXFLAGS) $(ERRORS)
+
+$(OBJ)%.o: $(OBJ)%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) -c $< -o $@ $(CXXFLAGS) $(ERRORS)
