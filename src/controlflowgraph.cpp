@@ -10,7 +10,7 @@
 int BBlock::blockCounter = 0;
 
 void Scope::print() {
-	std::cout << "Scope(prefix: " << prefix << ", varCounter: " << varCounter
+	std::cout << "Scope(prefix: " << prefix << ", tmpCounter: " << tmpCounter
 						<< ")" << std::endl;
 }
 

@@ -24,7 +24,7 @@ public:
 		id = idCounter++;
 	}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) = 0;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) = 0;
 
 	virtual void print(std::ostream& out, int indent = 0) {
 		for (int i = 0; i < indent; i++)
@@ -48,6 +48,32 @@ public:
 	}
 };
 
+	class StringNode;
+	class NilNode;
+	class BoolNode;
+	class NumberNode;
+	class RootNode;
+	class ChunkNode;
+	class ReturnNode;
+	class BreakNode;
+	class LocalAssignValueNode;
+	class AssignValuesNode;
+	class VariableRefNode;
+	class IndexOfNode;
+	class VariableListNode;
+	class ExpressionListNode;
+	class NameListNode;
+	class ValueNode;
+	class BinOPNode;
+	class UnOPNode;
+	class FunctionCallNode;
+	class FunctionNode;
+	class TableNode;
+	class ForLoopNode;
+	class IfNode;
+	class RepeatNode;
+
+
 class StringNode : public Node {
 public:
 	std::string value;
@@ -55,7 +81,7 @@ public:
 	StringNode() {}
 	StringNode(ast::token::QuotedToken text) : value(text.value) {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
 	virtual std::string toString() override {
 		return Node::toString() + ": " + value;
@@ -66,7 +92,7 @@ class NilNode : public Node {
 public:
 	NilNode() {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class BoolNode : public Node {
@@ -76,7 +102,7 @@ public:
 	BoolNode() {}
 	BoolNode(bool value) : value(value) {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
 	virtual std::string toString() override {
 		return Node::toString() + ": " + std::to_string(value);
@@ -91,7 +117,7 @@ public:
 	NumberNode(double value) : value(value) {}
 	NumberNode(ast::token::NumberToken text) : value(text.value) {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
 	virtual std::string toString() override {
 		return Node::toString() + ": " + std::to_string(value);
@@ -103,7 +129,7 @@ public:
 	RootNode() {}
 	RootNode(std::initializer_list<NodePtr> l) : Node(l) {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class ChunkNode : public Node {
@@ -113,7 +139,7 @@ public:
 
 	bool addScope = true;
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class ReturnNode : public Node {
@@ -123,12 +149,12 @@ public:
 	ReturnNode(){};
 	ReturnNode(NodePtr returnValue) : Node{returnValue} {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class BreakNode : public Node {
 public:
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class LocalAssignValueNode : public Node {
@@ -139,18 +165,18 @@ public:
 	LocalAssignValueNode(){};
 	LocalAssignValueNode(NodePtr key, NodePtr value) : Node{key, value} {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class AssignValuesNode : public Node {
 public:
-	NodePtr keys() { return children[0]; }
-	NodePtr values() { return children[1]; }
+	std::shared_ptr<VariableListNode> keys() { return std::dynamic_pointer_cast<VariableListNode>(children[0]); }
+	std::shared_ptr<ExpressionListNode> values() { return std::dynamic_pointer_cast<ExpressionListNode>(children[1]); }
 
 	AssignValuesNode(){};
 	AssignValuesNode(NodePtr keys, NodePtr values) : Node{keys, values} {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class VariableRefNode : public Node {
@@ -164,7 +190,7 @@ public:
 	VariableRefNode(ast::token::NameToken name)
 			: Node{}, name(name), isToken(true) {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
 	virtual std::string toString() override {
 		if (!isToken)
@@ -181,21 +207,21 @@ public:
 	IndexOfNode(){};
 	IndexOfNode(NodePtr object, NodePtr index) : Node{object, index} {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class VariableListNode : public Node {
 public:
 	VariableListNode() {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class ExpressionListNode : public Node {
 public:
 	ExpressionListNode() {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class NameListNode : public Node {
@@ -203,7 +229,7 @@ public:
 	NameListNode() {}
 	NameListNode(std::initializer_list<NodePtr> l) : Node(l) {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class ValueNode : public Node {
@@ -214,7 +240,7 @@ public:
 	template <typename T>
 	ValueNode(T value) : value{new T(value)} {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
 	virtual std::string toString() override {
 		int status;
@@ -238,7 +264,7 @@ public:
 			: Node{left, right},
 				op(ast::token::BinOPToken(ast::token::BinOPToken::OP::minus)) {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
 	virtual std::string toString() override {
 		return Node::toString() + ": " + op.toString();
@@ -256,7 +282,7 @@ public:
 			: Node{right},
 				op(ast::token::UnOPToken{ast::token::UnOPToken::OP::minus}) {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
 	virtual std::string toString() override {
 		return Node::toString() + ": " + op.toString();
@@ -272,7 +298,7 @@ public:
 	FunctionCallNode(NodePtr function, NodePtr arguments)
 			: Node{function, arguments} {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class FunctionNode : public Node {
@@ -289,14 +315,14 @@ public:
 
 	ExternalFunction_t externalFunction = nullptr;
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class TableNode : public Node {
 public:
 	TableNode(){};
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class ForLoopNode : public Node {
@@ -310,7 +336,7 @@ public:
 	ForLoopNode(NodePtr counter, NodePtr from, NodePtr to, NodePtr body)
 			: Node{counter, from, to, body} {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class IfNode : public Node {
@@ -323,7 +349,7 @@ public:
 	IfNode(NodePtr check, NodePtr body, NodePtr elseBody)
 			: Node{check, body, elseBody} {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 
 class RepeatNode : public Node {
@@ -334,6 +360,6 @@ public:
 	RepeatNode(){};
 	RepeatNode(NodePtr body, NodePtr check) : Node{body, check} {}
 
-	virtual std::string convert(BBlock* out, GlobalScope& gs) override;
+	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
 }  // namespace ast

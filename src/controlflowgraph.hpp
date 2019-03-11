@@ -15,18 +15,20 @@ class BBlock;
 
 struct Scope {
 	std::string prefix;
-	int varCounter = 0;
+	int tmpCounter = 0;
+	std::vector<std::string> variables;
 
 	Scope(std::string prefix) : prefix(prefix) {}
 
 	std::string makeName() {
-		return prefix + "_" + std::to_string(varCounter++);
+		return prefix + "_" + std::to_string(tmpCounter++);
 	}
 
 	void print();
 };
 
 struct GlobalScope {
+	std::vector<std::string> globals;
 	std::vector<std::shared_ptr<Scope>> scopes;
 	std::map<std::string, BBlock*> bblocks;
 
@@ -38,6 +40,7 @@ GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 #define enumMembers(o)													\
 	/* Values (lhs) */														\
 	o(constant)																		\
+	o(emptyTable)																		\
 	o(preMinus)																		\
 	o(not_)																				\
 	o(pound)																			\
@@ -56,8 +59,9 @@ GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 	o(equal)																			\
 	o(notequal)																		\
 	/* Misc */																		\
-	o(call)\
-	o(argListAppend)
+	o(call)																				\
+	o(indexof)																		\
+	o(concatTable)
 
 enum class Operation {
 #define o(x) x,
@@ -97,7 +101,8 @@ private:
 public:
 	std::shared_ptr<Scope> scope;
 	std::vector<ThreeAddr> instructions;
-	BBlock *tExit, *fExit;
+	BBlock* tExit;
+	BBlock* fExit;
 	std::string name;
 
 	BBlock(std::shared_ptr<Scope> scope)
