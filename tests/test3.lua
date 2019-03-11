@@ -3,7 +3,7 @@ n = io.read("*number")
 factorial = 1
 x=1
 for i = 2,n do
-	x = x * i
+	 x = x * i
 end
 io.write("factorial of ")
 io.write(n)
