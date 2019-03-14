@@ -47,7 +47,7 @@ std::string ast::BoolNode::convert(BBlock*& out, GlobalScope& gs) {
 }
 std::string ast::NilNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	return "<NIL>";
+	return "NIL";
 }
 
 std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -143,14 +143,26 @@ std::string ast::FunctionCallNode::convert(BBlock*& out, GlobalScope& gs) {
 std::string ast::FunctionNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 
-	auto mainScope = std::make_shared<Scope>("__main");
-	gs.scopes.push_back(mainScope);
+	// TODO: move
+	static int i = 0;
 
-	auto mainBlock = gs.bblocks["__main"] = new BBlock(mainScope);
+	std::string funName = "_func" + std::to_string(i++);
 
-	root->convert(mainBlock, gs);
+	auto funcScope = std::make_shared<Scope>(funName);
+	gs.scopes.push_back(funcScope);
 
-	expect(0, "NOT IMPLEMENTED!");
+	auto funcBlock = gs.bblocks[funName] = new BBlock(funcScope);
+
+	//TODO: Make better
+	auto& children = arguments()->children;
+	for (size_t i = 0; i < children.size(); i++) {
+		auto val = std::to_string(i);
+		funcBlock->instructions.push_back(ThreeAddr(children[i]->convert(funcBlock, gs), Operation::functionArg, val, val));
+	}
+
+	body()->convert(funcBlock, gs);
+
+	return funName;
 }
 std::string ast::IndexOfNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
@@ -166,7 +178,17 @@ std::string ast::LocalAssignValueNode::convert(BBlock*& out, GlobalScope& gs) {
 }
 std::string ast::ReturnNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	expect(0, "NOT IMPLEMENTED!");
+
+	BBlock* returnBlock = new BBlock(out->scope);
+	out->tExit = returnBlock;
+
+	std::string val = returnValue()->convert(returnBlock, gs);
+	std::string tmp = out->scope->makeName();
+	returnBlock->instructions.push_back(ThreeAddr(tmp, Operation::constant, val, val));
+
+	out = returnBlock;
+
+	return "";
 }
 std::string ast::TableNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
@@ -202,7 +224,7 @@ std::string ast::UnOPNode::convert(BBlock*& out, GlobalScope& gs) {
 std::string ast::ValueNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 	if (dynamic_cast<ast::token::NilToken*>(value.get()))
-			return "<NIL>";
+			return "NIL";
 	expect(0, "NOT IMPLEMENTED!");
 }
 std::string ast::VariableListNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -211,8 +233,20 @@ std::string ast::VariableListNode::convert(BBlock*& out, GlobalScope& gs) {
 }
 std::string ast::ExpressionListNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	expect(children.size() == 1, "ExpressionListNode can only have one child");
-	return children[0]->convert(out, gs);
+
+	if (children.size() == 1)
+		return children[0]->convert(out, gs);
+
+	// In test6 io.write takes two arguments so this is needed, sadly :c
+	// aka THE INSTRUCTIONS ARE WRONG!
+	std::string tbl = out->scope->makeName();
+	std::string len = std::to_string(children.size());
+	out->instructions.push_back(ThreeAddr(tbl, Operation::emptyTable, len, len));
+	for (auto& child : children) {
+		auto name = child->convert(out, gs);
+		out->instructions.push_back(ThreeAddr(tbl, Operation::concatTable, tbl, name));
+	}
+	return tbl;
 }
 std::string ast::NameListNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();

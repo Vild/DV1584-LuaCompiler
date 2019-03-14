@@ -12,12 +12,12 @@ all: comp
 clean:
 	rm -rf obj/ comp
 
-comp: $(OBJ)lua.tab.o $(OBJ)lua.yy.o $(OBJ)main.o $(OBJ)evaluate.o
+comp: $(OBJ)lua.tab.o $(OBJ)lua.yy.o $(OBJ)main.o $(OBJ)controlflowgraph.o $(OBJ)convert.o
 	g++ $^ -o $@
 
 $(OBJ)%.tab.cpp $(OBJ)%.tab.hpp: $(SRC)%.yy
 	@mkdir -p $(dir $@)
-	$(BISON) -y --report=state --warning=all -d -o $@ $^ $(ERRORS)
+	$(BISON) -y -d -o $@ $^ $(ERRORS)
 
 $(OBJ)%.yy.cpp: $(SRC)%.ll
 	@mkdir -p $(dir $@)
