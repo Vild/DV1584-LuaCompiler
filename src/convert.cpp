@@ -34,7 +34,6 @@ std::string ast::RootNode::convert(BBlock*& out, GlobalScope& gs) {
 
 std::string ast::NumberNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	
 	return std::to_string(value);
 }
 std::string ast::StringNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -44,11 +43,11 @@ std::string ast::StringNode::convert(BBlock*& out, GlobalScope& gs) {
 
 std::string ast::BoolNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	expect(0, "NOT IMPLEMENTED!");
+	return value ? "true" : "false";
 }
 std::string ast::NilNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	expect(0, "NOT IMPLEMENTED!");
+	return "<NIL>";
 }
 
 std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -96,8 +95,23 @@ std::string ast::BinOPNode::convert(BBlock*& out, GlobalScope& gs) {
 		operation = Operation::mod;
 		break;
 
+	case OP::less:
+		operation = Operation::less;
+		break;
+	case OP::lessOrEqual:
+		operation = Operation::lequal;
+		break;
+	case OP::more:
+		operation = Operation::greater;
+		break;
+	case OP::moreOrEqual:
+		operation = Operation::gequal;
+		break;
 	case OP::equal:
 		operation = Operation::equal;
+		break;
+	case OP::notEqual:
+		operation = Operation::notequal;
 		break;
 	default:
 		expect(0, op.toString() + ": is not implemented");
@@ -128,6 +142,14 @@ std::string ast::FunctionCallNode::convert(BBlock*& out, GlobalScope& gs) {
 }
 std::string ast::FunctionNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
+
+	auto mainScope = std::make_shared<Scope>("__main");
+	gs.scopes.push_back(mainScope);
+
+	auto mainBlock = gs.bblocks["__main"] = new BBlock(mainScope);
+
+	root->convert(mainBlock, gs);
+
 	expect(0, "NOT IMPLEMENTED!");
 }
 std::string ast::IndexOfNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -155,14 +177,32 @@ std::string ast::TableNode::convert(BBlock*& out, GlobalScope& gs) {
 		auto name = child->convert(out, gs);
 		out->instructions.push_back(ThreeAddr(tbl, Operation::concatTable, tbl, name));
 	}
-	return "";
+	return tbl;
 }
 std::string ast::UnOPNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	expect(0, "NOT IMPLEMENTED!");
+	std::string val = value()->convert(out, gs);
+	std::string tmp = out->scope->makeName();
+
+	Operation operation;
+
+	using OP = ast::token::UnOPToken::OP;
+	switch (op.op) {
+	case OP::pound:
+		operation = Operation::pound;
+		break;
+
+	default:
+		expect(0, op.toString() + ": is not implemented");
+	}
+
+	out->instructions.push_back(ThreeAddr(tmp, operation, val, val));
+	return tmp;
 }
 std::string ast::ValueNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
+	if (dynamic_cast<ast::token::NilToken*>(value.get()))
+			return "<NIL>";
 	expect(0, "NOT IMPLEMENTED!");
 }
 std::string ast::VariableListNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -244,5 +284,19 @@ std::string ast::IfNode::convert(BBlock*& out, GlobalScope& gs) {
 }
 std::string ast::RepeatNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	expect(0, "NOT IMPLEMENTED!");
+	auto bodyBlock = new BBlock(out->scope);
+	auto compareBlock = new BBlock(out->scope);
+	auto doneBlock = new BBlock(out->scope);
+
+	out->tExit = bodyBlock;
+
+	check()->convert(compareBlock, gs);
+	compareBlock->tExit = bodyBlock;
+	compareBlock->fExit = doneBlock;
+
+	body()->convert(bodyBlock, gs);
+	bodyBlock->tExit = compareBlock;
+
+	out = doneBlock;
+	return "";
 }

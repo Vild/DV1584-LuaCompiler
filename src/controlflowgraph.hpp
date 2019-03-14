@@ -61,7 +61,8 @@ GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 	/* Misc */																		\
 	o(call)																				\
 	o(indexof)																		\
-	o(concatTable)
+	o(concatTable)																\
+	o(functionArg)
 
 enum class Operation {
 #define o(x) x,
