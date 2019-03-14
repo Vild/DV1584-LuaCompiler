@@ -48,31 +48,30 @@ public:
 	}
 };
 
-	class StringNode;
-	class NilNode;
-	class BoolNode;
-	class NumberNode;
-	class RootNode;
-	class ChunkNode;
-	class ReturnNode;
-	class BreakNode;
-	class LocalAssignValueNode;
-	class AssignValuesNode;
-	class VariableRefNode;
-	class IndexOfNode;
-	class VariableListNode;
-	class ExpressionListNode;
-	class NameListNode;
-	class ValueNode;
-	class BinOPNode;
-	class UnOPNode;
-	class FunctionCallNode;
-	class FunctionNode;
-	class TableNode;
-	class ForLoopNode;
-	class IfNode;
-	class RepeatNode;
-
+class StringNode;
+class NilNode;
+class BoolNode;
+class NumberNode;
+class RootNode;
+class ChunkNode;
+class ReturnNode;
+class BreakNode;
+class LocalAssignValueNode;
+class AssignValuesNode;
+class VariableRefNode;
+class IndexOfNode;
+class VariableListNode;
+class ExpressionListNode;
+class NameListNode;
+class ValueNode;
+class BinOPNode;
+class UnOPNode;
+class FunctionCallNode;
+class FunctionNode;
+class TableNode;
+class ForLoopNode;
+class IfNode;
+class RepeatNode;
 
 class StringNode : public Node {
 public:
@@ -170,8 +169,12 @@ public:
 
 class AssignValuesNode : public Node {
 public:
-	std::shared_ptr<VariableListNode> keys() { return std::dynamic_pointer_cast<VariableListNode>(children[0]); }
-	std::shared_ptr<ExpressionListNode> values() { return std::dynamic_pointer_cast<ExpressionListNode>(children[1]); }
+	std::shared_ptr<VariableListNode> keys() {
+		return std::dynamic_pointer_cast<VariableListNode>(children[0]);
+	}
+	std::shared_ptr<ExpressionListNode> values() {
+		return std::dynamic_pointer_cast<ExpressionListNode>(children[1]);
+	}
 
 	AssignValuesNode(){};
 	AssignValuesNode(NodePtr keys, NodePtr values) : Node{keys, values} {}

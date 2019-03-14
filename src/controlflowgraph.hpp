@@ -20,9 +20,7 @@ struct Scope {
 
 	Scope(std::string prefix) : prefix(prefix) {}
 
-	std::string makeName() {
-		return prefix + "_" + std::to_string(tmpCounter++);
-	}
+	std::string makeName() { return prefix + "_" + std::to_string(tmpCounter++); }
 
 	void print();
 };
@@ -37,32 +35,13 @@ struct GlobalScope {
 
 GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 
-#define enumMembers(o)													\
-	/* Values (lhs) */														\
-	o(constant)																		\
-	o(emptyTable)																		\
-	o(preMinus)																		\
-	o(not_)																				\
-	o(pound)																			\
-	/* Math (lhs & rhs) */												\
-	o(plus)																				\
-	o(minus)																			\
-	o(mul)																				\
-	o(div)																				\
-	o(pow)																				\
-	o(mod)																				\
-	/* Compare (lhs & rhs) */											\
-	o(less)																				\
-	o(lequal)																			\
-	o(greater)																		\
-	o(gequal)																			\
-	o(equal)																			\
-	o(notequal)																		\
-	/* Misc */																		\
-	o(call)																				\
-	o(indexof)																		\
-	o(concatTable)																\
-	o(functionArg)
+#define enumMembers(o)                                                       \
+	/* Values (lhs) */                                                         \
+	o(constant) o(emptyTable) o(preMinus) o(not_)                              \
+			o(pound)                                     /* Math (lhs & rhs) */    \
+			o(plus) o(minus) o(mul) o(div) o(pow) o(mod) /* Compare (lhs & rhs) */ \
+			o(less) o(lequal) o(greater) o(gequal) o(equal) o(notequal) /* Misc */ \
+			o(call) o(indexof) o(concatTable) o(functionArg)
 
 enum class Operation {
 #define o(x) x,
@@ -73,7 +52,7 @@ enum class Operation {
 inline std::ostream& operator<<(std::ostream& out, const Operation op) {
 	static const char* str[] = {
 #define o(x) #x,
-		enumMembers(o)
+			enumMembers(o)
 #undef o
 	};
 	out << std::string(str[(int)op]);

@@ -1,11 +1,11 @@
 /* -*- mode: c++; c-set-style: cc-mode -*- */
 
-#include <controlflowgraph.hpp>
-#include <token.hpp>
 #include <ast.hpp>
+#include <controlflowgraph.hpp>
 #include <expect.hpp>
 #include <iostream>
 #include <set>
+#include <token.hpp>
 
 int BBlock::blockCounter = 0;
 
@@ -45,7 +45,6 @@ GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root) {
 	return gs;
 }
 
-
 void ThreeAddr::dump() const {
 	toDot(0, std::cout);
 	std::cout << std::endl;
@@ -54,12 +53,11 @@ void ThreeAddr::dump() const {
 void ThreeAddr::toDot(int id, std::ostream& out) const {
 	if (id)
 		out << '|' << "<i" << id << '>';
-	out << name << " := " << '\'' << lhs << '\'' << " " << op << " " << '\'' << rhs << '\'';
+	out << name << " := " << '\'' << lhs << '\'' << " " << op << " " << '\''
+			<< rhs << '\'';
 }
 
-void ThreeAddr::toASM(std::ostream& out) const {
-
-}
+void ThreeAddr::toASM(std::ostream& out) const {}
 
 void BBlock::dump() const {
 	std::cout << "BBlock @ " << name << " (" << this << ')' << std::endl;
@@ -94,9 +92,8 @@ void BBlock::toDot(std::ostream& out) const {
 void BBlock::toASM(std::ostream& out) const {
 	out << name << ":" << std::endl;
 	if (fExit) {
-		out << "\tif (1 || 0)\n\t\tgoto "
-				<< tExit->name << ";\n\telse\n\t\tgoto " << fExit->name << ";"
-				<< std::endl;
+		out << "\tif (1 || 0)\n\t\tgoto " << tExit->name << ";\n\telse\n\t\tgoto "
+				<< fExit->name << ";" << std::endl;
 	} else if (tExit)
 		out << "\tgoto " << tExit->name << ";" << std::endl;
 }

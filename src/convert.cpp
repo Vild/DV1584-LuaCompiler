@@ -1,9 +1,9 @@
 /* -*- mode: c++; c-set-style: cc-mode -*- */
 
-#include <string>
+#include <algorithm>
 #include <ast.hpp>
 #include <expect.hpp>
-#include <algorithm>
+#include <string>
 
 #define debug() Debug debug(this->toString().c_str())
 
@@ -21,7 +21,6 @@ struct Debug {
 	}
 	~Debug() { indent--; }
 };
-
 
 std::string ast::RootNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
@@ -61,7 +60,8 @@ std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 		tmpVars[i] = right[i]->convert(out, gs);
 	for (size_t i = 0; i < left.size(); i++) {
 		std::string l = left[i]->convert(out, gs);
-		out->instructions.push_back(ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
+		out->instructions.push_back(
+				ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
 		gs.globals.push_back(l);
 	}
 	return "";
@@ -76,45 +76,45 @@ std::string ast::BinOPNode::convert(BBlock*& out, GlobalScope& gs) {
 
 	using OP = ast::token::BinOPToken::OP;
 	switch (op.op) {
-	case OP::plus:
-		operation = Operation::plus;
-		break;
-	case OP::minus:
-		operation = Operation::minus;
-		break;
-	case OP::mul:
-		operation = Operation::mul;
-		break;
-	case OP::div:
-		operation = Operation::div;
-		break;
-	case OP::pow:
-		operation = Operation::pow;
-		break;
-	case OP::mod:
-		operation = Operation::mod;
-		break;
+		case OP::plus:
+			operation = Operation::plus;
+			break;
+		case OP::minus:
+			operation = Operation::minus;
+			break;
+		case OP::mul:
+			operation = Operation::mul;
+			break;
+		case OP::div:
+			operation = Operation::div;
+			break;
+		case OP::pow:
+			operation = Operation::pow;
+			break;
+		case OP::mod:
+			operation = Operation::mod;
+			break;
 
-	case OP::less:
-		operation = Operation::less;
-		break;
-	case OP::lessOrEqual:
-		operation = Operation::lequal;
-		break;
-	case OP::more:
-		operation = Operation::greater;
-		break;
-	case OP::moreOrEqual:
-		operation = Operation::gequal;
-		break;
-	case OP::equal:
-		operation = Operation::equal;
-		break;
-	case OP::notEqual:
-		operation = Operation::notequal;
-		break;
-	default:
-		expect(0, op.toString() + ": is not implemented");
+		case OP::less:
+			operation = Operation::less;
+			break;
+		case OP::lessOrEqual:
+			operation = Operation::lequal;
+			break;
+		case OP::more:
+			operation = Operation::greater;
+			break;
+		case OP::moreOrEqual:
+			operation = Operation::gequal;
+			break;
+		case OP::equal:
+			operation = Operation::equal;
+			break;
+		case OP::notEqual:
+			operation = Operation::notequal;
+			break;
+		default:
+			expect(0, op.toString() + ": is not implemented");
 	}
 
 	out->instructions.push_back(ThreeAddr(tmp, operation, l, r));
@@ -153,11 +153,12 @@ std::string ast::FunctionNode::convert(BBlock*& out, GlobalScope& gs) {
 
 	auto funcBlock = gs.bblocks[funName] = new BBlock(funcScope);
 
-	//TODO: Make better
+	// TODO: Make better
 	auto& children = arguments()->children;
 	for (size_t i = 0; i < children.size(); i++) {
 		auto val = std::to_string(i);
-		funcBlock->instructions.push_back(ThreeAddr(children[i]->convert(funcBlock, gs), Operation::functionArg, val, val));
+		funcBlock->instructions.push_back(ThreeAddr(
+				children[i]->convert(funcBlock, gs), Operation::functionArg, val, val));
 	}
 
 	body()->convert(funcBlock, gs);
@@ -184,7 +185,8 @@ std::string ast::ReturnNode::convert(BBlock*& out, GlobalScope& gs) {
 
 	std::string val = returnValue()->convert(returnBlock, gs);
 	std::string tmp = out->scope->makeName();
-	returnBlock->instructions.push_back(ThreeAddr(tmp, Operation::constant, val, val));
+	returnBlock->instructions.push_back(
+			ThreeAddr(tmp, Operation::constant, val, val));
 
 	out = returnBlock;
 
@@ -197,7 +199,8 @@ std::string ast::TableNode::convert(BBlock*& out, GlobalScope& gs) {
 	out->instructions.push_back(ThreeAddr(tbl, Operation::emptyTable, len, len));
 	for (auto& child : children) {
 		auto name = child->convert(out, gs);
-		out->instructions.push_back(ThreeAddr(tbl, Operation::concatTable, tbl, name));
+		out->instructions.push_back(
+				ThreeAddr(tbl, Operation::concatTable, tbl, name));
 	}
 	return tbl;
 }
@@ -210,12 +213,12 @@ std::string ast::UnOPNode::convert(BBlock*& out, GlobalScope& gs) {
 
 	using OP = ast::token::UnOPToken::OP;
 	switch (op.op) {
-	case OP::pound:
-		operation = Operation::pound;
-		break;
+		case OP::pound:
+			operation = Operation::pound;
+			break;
 
-	default:
-		expect(0, op.toString() + ": is not implemented");
+		default:
+			expect(0, op.toString() + ": is not implemented");
 	}
 
 	out->instructions.push_back(ThreeAddr(tmp, operation, val, val));
@@ -224,7 +227,7 @@ std::string ast::UnOPNode::convert(BBlock*& out, GlobalScope& gs) {
 std::string ast::ValueNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 	if (dynamic_cast<ast::token::NilToken*>(value.get()))
-			return "NIL";
+		return "NIL";
 	expect(0, "NOT IMPLEMENTED!");
 }
 std::string ast::VariableListNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -244,7 +247,8 @@ std::string ast::ExpressionListNode::convert(BBlock*& out, GlobalScope& gs) {
 	out->instructions.push_back(ThreeAddr(tbl, Operation::emptyTable, len, len));
 	for (auto& child : children) {
 		auto name = child->convert(out, gs);
-		out->instructions.push_back(ThreeAddr(tbl, Operation::concatTable, tbl, name));
+		out->instructions.push_back(
+				ThreeAddr(tbl, Operation::concatTable, tbl, name));
 	}
 	return tbl;
 }
@@ -273,29 +277,39 @@ std::string ast::ForLoopNode::convert(BBlock*& out, GlobalScope& gs) {
 
 	std::string counterName = counter()->convert(compareBlock, gs);
 
-	//TODO: fix hack
-	bool backupVar = std::find(vars.begin(), vars.end(), counterName) != vars.end() ||
-		std::find(gs.globals.begin(), gs.globals.end(), counterName) != gs.globals.end();
+	// TODO: fix hack
+	bool backupVar =
+			std::find(vars.begin(), vars.end(), counterName) != vars.end() ||
+			std::find(gs.globals.begin(), gs.globals.end(), counterName) !=
+					gs.globals.end();
 	if (backupVar) {
 		std::string backupVarName = out->scope->makeName();
-		out->instructions.push_back(ThreeAddr(backupVarName, Operation::constant, counterName, counterName));
-		doneBlock->instructions.push_back(ThreeAddr(counterName, Operation::constant, backupVarName, backupVarName));
+		out->instructions.push_back(ThreeAddr(backupVarName, Operation::constant,
+																					counterName, counterName));
+		doneBlock->instructions.push_back(ThreeAddr(
+				counterName, Operation::constant, backupVarName, backupVarName));
 	} else {
 		vars.push_back(counterName);
-		doneBlock->instructions.push_back(ThreeAddr(counterName, Operation::constant, "NIL", "NIL")); //TODO: replace with real nil value
+		doneBlock->instructions.push_back(
+				ThreeAddr(counterName, Operation::constant, "NIL",
+									"NIL"));  // TODO: replace with real nil value
 	}
 
 	// counter = start
-	out->instructions.push_back(ThreeAddr(counterName, Operation::constant, start, start));
+	out->instructions.push_back(
+			ThreeAddr(counterName, Operation::constant, start, start));
 
 	// if (counter <= end) goto body; else goto done
-	compareBlock->instructions.push_back(ThreeAddr(out->scope->makeName(), Operation::lequal, counterName, end));
+	compareBlock->instructions.push_back(
+			ThreeAddr(out->scope->makeName(), Operation::lequal, counterName, end));
 
 	body()->convert(bodyBlock, gs);
 	{
 		std::string tmp = out->scope->makeName();
-		bodyBlock->instructions.push_back(ThreeAddr(tmp, Operation::plus, counterName, "1"));
-		bodyBlock->instructions.push_back(ThreeAddr(counterName, Operation::constant, tmp, tmp));
+		bodyBlock->instructions.push_back(
+				ThreeAddr(tmp, Operation::plus, counterName, "1"));
+		bodyBlock->instructions.push_back(
+				ThreeAddr(counterName, Operation::constant, tmp, tmp));
 	}
 	bodyBlock->tExit = compareBlock;
 
@@ -305,7 +319,7 @@ std::string ast::ForLoopNode::convert(BBlock*& out, GlobalScope& gs) {
 std::string ast::IfNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 	check()->convert(out, gs);
-	BBlock* truePathEndNode =new BBlock(out->scope);
+	BBlock* truePathEndNode = new BBlock(out->scope);
 	out->tExit = truePathEndNode;
 	body()->convert(truePathEndNode, gs);
 	BBlock* falsePathEndNode = new BBlock(out->scope);
