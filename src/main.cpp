@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
 		out << "constants_lbl -> constants;" << std::endl;
 		out << "constants[label=\"{";
 		first = true;
-		for (const std::pair<std::string, Value> kv : gs.constants) {
+		for (const std::pair<std::string, Value>& kv : gs.constants) {
 			if (!first)
 				out << "|";
 			first = false;
@@ -142,36 +142,56 @@ int main(int argc, char** argv) {
 	}
 
 	{
-		std::ofstream out("target-raw.s");
-		out << ".code64\n"
-					 ".text\n"
-					 "\n"
-					 ".global printf\n"
-					 "\n"
-					 ".global _start\n"
-					 ".type _start, %function\n"
-					 "_start:\n"
-					 "\tmov $0, %rbp\n"
-					 "\tcall main\n"
-					 "\tmov %rax, %rdi\n"
-					 "\tmovq $"
-				<< __NR_exit
-				<< ", %rax\n"
-					 "\tsyscall\n"
-					 ".size ., .-_start\n"
-					 "\n"
-					 ".global main\n"
-					 ".type main, %function\n"
-					 "main:\n"
-					 "\tpushq %rbp\n"
-					 "\tmov %rsp, %rbp\n"
-					 "\tcall __main\n"
-					 "\txor %rax, %rax\n"
-					 "\tpop %rbp\n"
-					 "\tret\n"
-					 ".size ., .-main\n"
-				<< std::endl;
-		out << ".rodata\n";
+			std::ofstream out("target-raw.s");
+			out << ".code64\n"
+					".text\n"
+					"\n"
+					".global printf\n"
+					"\n"
+					".global _start\n"
+					".type _start, %function\n"
+					"_start:\n"
+					"\tmov $0, %rbp\n"
+					"\tcall main\n"
+					"\tmov %rax, %rdi\n"
+					"\tmovq $"
+					<< __NR_exit
+					<< ", %rax\n"
+					"\tsyscall\n"
+					".size ., .-_start\n"
+					"\n"
+					".global main\n"
+					".type main, %function\n"
+					"main:\n"
+					"\tpushq %rbp\n"
+					"\tmov %rsp, %rbp\n"
+					"\tcall __main\n"
+					"\txor %rax, %rax\n"
+					"\tpop %rbp\n"
+					"\tret\n"
+					".size ., .-main\n"
+					<< std::endl;
+			out << ".rodata\n";
+			for (const std::pair<std::string, Value>& kv : gs.constants) {
+					out << kv.first << ": ";
+					switch (kv.second.type) {
+					case Value::Type::nil:
+							out << ".quad 0";
+							break;
+					case Value::Type::string:
+							out << ".ascii \"" << kv.second.str << "\0\"";
+							break;
+					case Value::Type::number:
+							out << ".double " << kv.second.number;
+							break;
+					case Value::Type::boolean:
+							out << ".quad " << kv.second.boolean ? 1 : 0;
+							break;
+					default:
+							expect(0, "Not implemented");
+					}
+					out << std::endl;
+		}
 		toASM(out, gs);
 	}
 
