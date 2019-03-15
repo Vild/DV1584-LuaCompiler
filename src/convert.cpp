@@ -33,20 +33,20 @@ std::string ast::RootNode::convert(BBlock*& out, GlobalScope& gs) {
 
 std::string ast::NumberNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	return std::to_string(value);
+	return gs.addConstant(Value(value));
 }
 std::string ast::StringNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	return value;
+	return gs.addConstant(Value(value));
 }
 
 std::string ast::BoolNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	return value ? "true" : "false";
+	return gs.addConstant(Value(value));
 }
 std::string ast::NilNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	return "NIL";
+	return gs.addConstant(Value(nullptr));
 }
 
 std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -62,7 +62,7 @@ std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 		std::string l = left[i]->convert(out, gs);
 		out->instructions.push_back(
 				ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
-		gs.globals.push_back(l);
+		gs.addGlobal(l);
 	}
 	return "";
 }
@@ -227,7 +227,7 @@ std::string ast::UnOPNode::convert(BBlock*& out, GlobalScope& gs) {
 std::string ast::ValueNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 	if (dynamic_cast<ast::token::NilToken*>(value.get()))
-		return "NIL";
+		return gs.addConstant(Value(nullptr));
 	expect(0, "NOT IMPLEMENTED!");
 }
 std::string ast::VariableListNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -290,9 +290,10 @@ std::string ast::ForLoopNode::convert(BBlock*& out, GlobalScope& gs) {
 				counterName, Operation::constant, backupVarName, backupVarName));
 	} else {
 		vars.push_back(counterName);
+		auto nil = gs.addConstant(Value(nullptr));
 		doneBlock->instructions.push_back(
-				ThreeAddr(counterName, Operation::constant, "NIL",
-									"NIL"));  // TODO: replace with real nil value
+				ThreeAddr(counterName, Operation::constant, nil,
+									nil));  // TODO: replace with real nil value
 	}
 
 	// counter = start

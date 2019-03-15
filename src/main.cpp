@@ -6,6 +6,9 @@
 #include <lua.tab.hpp>
 #include <set>
 
+// syscall numbers __NR_*
+#include <asm/unistd_64.h>
+
 std::shared_ptr<ast::RootNode> root;
 yy::location loc;
 
@@ -60,8 +63,18 @@ void toDot(std::ostream& out, GlobalScope& gs) {
 }
 
 void toASM(std::ostream& out, GlobalScope& gs) {
-	visitAllBlocks(
-			gs, [&out](std::string name, BBlock* block) { block->toASM(out); });
+	std::string sName;
+	visitAllBlocks(gs, [&out, &sName](std::string name, BBlock* block) {
+		if (sName != name) {
+			if (sName.size()) {
+				out << "\tret\n.size ., .-" << sName << std::endl;
+			}
+			sName = name;
+			out << name << ".global " << name << "\n.type " << name << ", %function\n"
+					<< name << ": " << std::endl;
+		}
+		block->toASM(out);
+	});
 }
 
 int main(int argc, char** argv) {
@@ -97,7 +110,69 @@ int main(int argc, char** argv) {
 		out << "node [shape=record];" << std::endl;
 		out << "graph [compound=true];" << std::endl;
 		toDot(out, gs);
+
+		out << "globals_lbl[label=\"Globals\",shape=ellipse,color=grey,style="
+					 "filled];"
+				<< std::endl;
+		out << "globals_lbl -> globals;" << std::endl;
+		out << "globals[label=\"{";
+		bool first = true;
+		for (const std::string& str : gs.globals) {
+			if (!first)
+				out << "|";
+			first = false;
+			out << str;
+		}
+		out << "}\"];" << std::endl;
+
+		out << "constants_lbl[label=\"Constants\",shape=ellipse,color=grey,style="
+					 "filled];"
+				<< std::endl;
+		out << "constants_lbl -> constants;" << std::endl;
+		out << "constants[label=\"{";
+		first = true;
+		for (const std::pair<std::string, Value> kv : gs.constants) {
+			if (!first)
+				out << "|";
+			first = false;
+			out << kv.first << "=" << kv.second;
+		}
+		out << "}\"];" << std::endl;
 		out << "}" << std::endl;
+	}
+
+	{
+		std::ofstream out("target-raw.s");
+		out << ".code64\n"
+					 ".text\n"
+					 "\n"
+					 ".global printf\n"
+					 "\n"
+					 ".global _start\n"
+					 ".type _start, %function\n"
+					 "_start:\n"
+					 "\tmov $0, %rbp\n"
+					 "\tcall main\n"
+					 "\tmov %rax, %rdi\n"
+					 "\tmovq $"
+				<< __NR_exit
+				<< ", %rax\n"
+					 "\tsyscall\n"
+					 ".size ., .-_start\n"
+					 "\n"
+					 ".global main\n"
+					 ".type main, %function\n"
+					 "main:\n"
+					 "\tpushq %rbp\n"
+					 "\tmov %rsp, %rbp\n"
+					 "\tcall __main\n"
+					 "\txor %rax, %rax\n"
+					 "\tpop %rbp\n"
+					 "\tret\n"
+					 ".size ., .-main\n"
+				<< std::endl;
+		out << ".rodata\n";
+		toASM(out, gs);
 	}
 
 	fclose(yyin);

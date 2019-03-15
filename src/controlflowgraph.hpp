@@ -25,12 +25,45 @@ struct Scope {
 	void print();
 };
 
+struct Value {
+	// This is a char because the helps generate the constant names
+	enum class Type : char {
+		UNK = (char)0,
+		nil = 'N',
+		string = 's',
+		number = 'n',
+		boolean = 'b'
+	} type;
+
+	// Could probably use a union, but in that case need to work around
+	// std::string being a non-trivial type
+
+	std::string str;  // will also be used to generate the constant name
+	double number;
+	bool boolean;
+
+	Value() : type(Type::UNK) {}
+	Value(nullptr_t) : type(Type::nil), str("NIL") {}
+	Value(std::string str) : type(Type::string), str(str) {}
+	Value(double number)
+			: type(Type::number), str(std::to_string(number)), number(number) {}
+	Value(bool boolean)
+			: type(Type::boolean),
+				str(boolean ? "true" : "false"),
+				boolean(boolean) {}
+};
+std::ostream& operator<<(std::ostream& out, const Value& value);
+
 struct GlobalScope {
+	std::map<std::string, Value> constants;
 	std::vector<std::string> globals;
 	std::vector<std::shared_ptr<Scope>> scopes;
 	std::map<std::string, BBlock*> bblocks;
 
 	~GlobalScope();
+
+	std::string addConstant(const Value& value);
+	void addGlobal(const std::string& value);
 };
 
 GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);

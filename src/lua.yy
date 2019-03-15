@@ -132,26 +132,15 @@ chunkStatement : stat { $$ = $1; }
 stat : varlist EQUALS explist { $$ = make<ast::AssignValuesNode>($1, $3); }
 | functioncall { $$ = $1; }
 | FUNCTION funcname funcbody {
-		auto cn = make<ast::ChunkNode>();
 		auto var = make<ast::VariableListNode>();
 		var->children.push_back($2);
-
-		auto nilExp = make<ast::ExpressionListNode>();
-		nilExp->children.push_back(make<ast::ValueNode>(ast::token::NilToken()));
 		auto valExp = make<ast::ExpressionListNode>();
 		valExp->children.push_back($3);
 
-		cn->children.push_back(make<ast::AssignValuesNode>(var, nilExp));
-		cn->children.push_back(make<ast::AssignValuesNode>(var, valExp));
-		cn->addScope = false;
-		$$ = cn;
+		$$ = make<ast::AssignValuesNode>(var, valExp);
  }
 | LOCAL FUNCTION Name funcbody {
-		auto cn = make<ast::ChunkNode>();
-		cn->children.push_back(make<ast::LocalAssignValueNode>($3, make<ast::ValueNode>(ast::token::NilToken())));
-		cn->children.push_back(make<ast::LocalAssignValueNode>($3, $4));
-		cn->addScope = false;
-		$$ = cn;
+		$$ = make<ast::LocalAssignValueNode>($3, $4);
  }
 | LOCAL Name { $$ = make<ast::LocalAssignValueNode>($2, make<ast::ValueNode>(ast::token::NilToken())); }
 | LOCAL Name EQUALS exp { $$ = make<ast::LocalAssignValueNode>($2, $4); }

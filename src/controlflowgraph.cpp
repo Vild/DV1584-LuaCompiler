@@ -1,6 +1,8 @@
 /* -*- mode: c++; c-set-style: cc-mode -*- */
 
+#include <algorithm>
 #include <ast.hpp>
+#include <cctype>
 #include <controlflowgraph.hpp>
 #include <expect.hpp>
 #include <iostream>
@@ -12,6 +14,26 @@ int BBlock::blockCounter = 0;
 void Scope::print() {
 	std::cout << "Scope(prefix: " << prefix << ", tmpCounter: " << tmpCounter
 						<< ")" << std::endl;
+}
+
+std::ostream& operator<<(std::ostream& out, const Value& value) {
+	switch (value.type) {
+		case Value::Type::nil:
+			out << "NIL";
+			break;
+		case Value::Type::string:
+			out << value.str;
+			break;
+		case Value::Type::number:
+			out << value.number;
+			break;
+		case Value::Type::boolean:
+			out << value.boolean;
+			break;
+		default:
+			expect(0, "Not implemented");
+	}
+	return out;
 }
 
 GlobalScope::~GlobalScope() {
@@ -30,6 +52,24 @@ GlobalScope::~GlobalScope() {
 
 		delete next;
 	}
+}
+std::string GlobalScope::addConstant(const Value& value) {
+	std::string index = std::string("_c") + (char)value.type + "_" + value.str;
+	std::replace_if(index.begin(), index.end(),
+									[](char ch) { return !isalnum(ch); }, '_');
+	if (constants[index].type !=
+			Value::Type::UNK)  // There is already a constant with this index
+		expect(constants[index].str == value.str,
+					 "Two different constants generated the same name: " + index +
+							 ", test: '" + constants[index].str + "' != '" + value.str + "'");
+	constants[index] = value;
+	return index;
+}
+
+void GlobalScope::addGlobal(const std::string& value) {
+	auto it = std::find(globals.begin(), globals.end(), value);
+	if (it == globals.end())
+		globals.push_back(value);
 }
 
 GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root) {
@@ -57,7 +97,27 @@ void ThreeAddr::toDot(int id, std::ostream& out) const {
 			<< rhs << '\'';
 }
 
-void ThreeAddr::toASM(std::ostream& out) const {}
+void ThreeAddr::toASM(std::ostream& out) const {
+	out << "\t// Expand: " << name << " := " << lhs << " " << op << " " << rhs
+			<< std::endl;
+#define _(...) out << "\t" << __VA_ARGS__ << std::endl;
+	_("movq %[" << lhs << "], \t%%rax");
+	_("movq %[" << rhs << "], \t%%rbx");
+	switch (op) {
+		case Operation::constant:
+			_("// copy is a dummy operation");
+			break;
+		default:
+			out << "\t// Unknown op = '" << op << "'!" << std::endl;
+			_("nop");
+			break;
+	}
+
+	// NOTE: The never clean %rax at the end of each statement as this value will
+	//       be used as the return value.
+	_("movq %%rax, \t%[" << name << "]");
+#undef _
+}
 
 void BBlock::dump() const {
 	std::cout << "BBlock @ " << name << " (" << this << ')' << std::endl;
@@ -90,10 +150,15 @@ void BBlock::toDot(std::ostream& out) const {
 }
 
 void BBlock::toASM(std::ostream& out) const {
-	out << name << ":" << std::endl;
+	out << "." << name << ":" << std::endl;
+
+	for (size_t i = 0; i < instructions.size(); i++)
+		instructions[i].toASM(out);
+
 	if (fExit) {
-		out << "\tif (1 || 0)\n\t\tgoto " << tExit->name << ";\n\telse\n\t\tgoto "
-				<< fExit->name << ";" << std::endl;
+		out << "test %rax, %rax" << std::endl;
+		out << "jnz ." << tExit->name << std::endl;
+		out << "jmp ." << fExit->name << std::endl;
 	} else if (tExit)
-		out << "\tgoto " << tExit->name << ";" << std::endl;
+		out << "jmp ." << tExit->name << std::endl;
 }

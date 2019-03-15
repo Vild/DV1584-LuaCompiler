@@ -5,3 +5,4 @@
 obj/
 /comp
 *.dot
+/target-raw.s
