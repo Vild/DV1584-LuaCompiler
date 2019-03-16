@@ -25,6 +25,8 @@ struct Scope {
 	void print();
 };
 
+struct NIL {};
+
 struct Value {
 	// This is a char because the helps generate the constant names
 	enum class Type : char {
@@ -43,7 +45,7 @@ struct Value {
 	bool boolean;
 
 	Value() : type(Type::UNK) {}
-	Value(nullptr_t) : type(Type::nil), str("NIL") {}
+	Value(NIL nil) : type(Type::nil), str("NIL") {}
 	Value(std::string str) : type(Type::string), str(str) {}
 	Value(double number)
 			: type(Type::number), str(std::to_string(number)), number(number) {}

@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
 		out << "\t.set __NR_exit, " << __NR_exit << std::endl;
 		out << "\t.set __NR_write, " << __NR_write << std::endl;
 		{
-			std::ifstream in("prologue.s");
+			std::ifstream in("runtime/prologue.s");
 			std::copy(std::istreambuf_iterator<char>(in),
 								std::istreambuf_iterator<char>(),
 								std::ostreambuf_iterator<char>(out));
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
 		out << std::endl;
 
 		{
-			std::ifstream in("epilogue.s");
+			std::ifstream in("runtime/epilogue.s");
 			std::copy(std::istreambuf_iterator<char>(in),
 								std::istreambuf_iterator<char>(),
 								std::ostreambuf_iterator<char>(out));

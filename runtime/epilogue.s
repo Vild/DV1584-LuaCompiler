@@ -134,8 +134,8 @@ powOP: // arg1 = rdi, arg2 = rsi, output = rdx
 
 	// Extract a whole number as the exponent
 	movsd data(%rsi), %xmm0
-	// https://www.felixcloutier.com/x86/cvttsd2si
-	cvttsd2si %xmm0, %rcx
+	// https://www.felixcloutier.com/x86/cvtsd2si
+	cvtsd2si %xmm0, %rcx
 
 	movsd data(%rdi), %xmm0
 
@@ -216,7 +216,7 @@ io_write: // thisFunction = rdi, text = rsi, output = rdx
 	mov $10, %rax
 	cvtsi2sd %rax, %xmm1
 	mulsd %xmm1, %xmm0
-	cvttsd2si %xmm0, %rdi
+	cvtsd2si %xmm0, %rdi
 
 	call intToStr
 	mov %rax, %rdi
