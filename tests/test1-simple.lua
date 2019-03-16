@@ -1,0 +1,16 @@
+a = 4*2
+print("a = 4*2:    ", a)
+b = 2^a
+print("b = 2^a:    ", b)
+c = b + 10
+print("c = b + 10: ", c)
+d = 2*6
+print("d = 2*6:    ", d)
+e = c-d
+print("e = c-d:    ", e)
+f = 1/4
+print("f = 1/4:    ", f)
+g = e + f
+print("g = e + f:  ", g)
+h = g * 2
+print("h = g * 2:  ", h)

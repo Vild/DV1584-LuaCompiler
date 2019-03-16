@@ -66,14 +66,15 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 	std::string sName;
 	visitAllBlocks(gs, [&out, &sName](std::string name, BBlock* block) {
 		if (sName != name) {
-			if (sName.size()) {
-				out << "\tret\n.size ., .-" << sName << std::endl;
-			}
+			if (sName.size())
+				out << "\tret\n.size ., .-" << sName << std::endl << std::endl;
 			sName = name;
-			out << name << ".global " << name << "\n.type " << name << ", %function\n"
+			out << ".global " << name << "\n.type " << name << ", %function\n"
 					<< name << ": " << std::endl;
 		}
 		block->toASM(out);
+		if (sName.size())
+			out << "\tret\n.size ., .-" << sName << std::endl << std::endl;
 	});
 }
 
@@ -142,57 +143,87 @@ int main(int argc, char** argv) {
 	}
 
 	{
-			std::ofstream out("target-raw.s");
-			out << ".code64\n"
-					".text\n"
-					"\n"
-					".global printf\n"
-					"\n"
-					".global _start\n"
-					".type _start, %function\n"
-					"_start:\n"
-					"\tmov $0, %rbp\n"
-					"\tcall main\n"
-					"\tmov %rax, %rdi\n"
-					"\tmovq $"
-					<< __NR_exit
-					<< ", %rax\n"
-					"\tsyscall\n"
-					".size ., .-_start\n"
-					"\n"
-					".global main\n"
-					".type main, %function\n"
-					"main:\n"
-					"\tpushq %rbp\n"
-					"\tmov %rsp, %rbp\n"
-					"\tcall __main\n"
-					"\txor %rax, %rax\n"
-					"\tpop %rbp\n"
-					"\tret\n"
-					".size ., .-main\n"
-					<< std::endl;
-			out << ".rodata\n";
-			for (const std::pair<std::string, Value>& kv : gs.constants) {
-					out << kv.first << ": ";
-					switch (kv.second.type) {
-					case Value::Type::nil:
-							out << ".quad 0";
-							break;
-					case Value::Type::string:
-							out << ".ascii \"" << kv.second.str << "\0\"";
-							break;
-					case Value::Type::number:
-							out << ".double " << kv.second.number;
-							break;
-					case Value::Type::boolean:
-							out << ".quad " << kv.second.boolean ? 1 : 0;
-							break;
-					default:
-							expect(0, "Not implemented");
-					}
-					out << std::endl;
+		std::ofstream out("target-raw.s");
+		out << "\t.set __NR_exit, " << __NR_exit << std::endl;
+		out << "\t.set __NR_write, " << __NR_write << std::endl;
+		{
+			std::ifstream in("prologue.s");
+			std::copy(std::istreambuf_iterator<char>(in),
+								std::istreambuf_iterator<char>(),
+								std::ostreambuf_iterator<char>(out));
 		}
+
+		out << std::endl;
+
 		toASM(out, gs);
+
+		out << std::endl;
+
+		{
+			std::ifstream in("epilogue.s");
+			std::copy(std::istreambuf_iterator<char>(in),
+								std::istreambuf_iterator<char>(),
+								std::ostreambuf_iterator<char>(out));
+		}
+
+		out << std::endl;
+
+		out << ".section .rodata\n";
+		for (const std::pair<std::string, Value>& kv : gs.constants) {
+			out << ".align 8" << std::endl;
+			out << kv.first << ": " << std::endl;
+			out << "\t.quad '" << (char)kv.second.type << "'" << std::endl;
+			switch (kv.second.type) {
+				case Value::Type::nil:
+					out << "\t.quad 0";
+					break;
+				case Value::Type::string:
+					out << "\t.quad 1f" << std::endl;
+					out << "\t\t1: .asciz \"" << kv.second.str << "\"";
+					break;
+				case Value::Type::number:
+					out << "\t.double " << kv.second.number;
+					break;
+				case Value::Type::boolean:
+					out << "\t.quad " << (kv.second.boolean ? "1" : "0");
+					break;
+				default:
+					out << " // Not implemented";
+					break;
+			}
+			out << std::endl;
+		}
+
+		out << ".section .data\n";
+		for (const std::string& str : gs.globals) {
+			out << ".align 8" << std::endl;
+			out << str << ": " << std::endl;
+			out << "\t.quad 0" << std::endl;  // TYPE::UNK
+			out << "\t.quad 0" << std::endl;
+		}
+		for (auto scope : gs.scopes) {
+			/*for (const std::string & str : scope->variables) {
+				out << ".align 8" << std::endl;
+				out << str << ": " << std::endl;
+				out << "\t.quad 0" << std::endl; // TYPE::UNK
+				out << "\t.quad 0" << std::endl;
+				}*/
+			for (int i = 0; i < scope->tmpCounter; i++) {
+				out << ".align 8" << std::endl;
+				out << scope->prefix << "_" << i << ": " << std::endl;
+				out << "\t.quad 0" << std::endl;  // TYPE::UNK
+				out << "\t.quad 0" << std::endl;
+			}
+		}
+
+		// Need to be last
+		out << "// Define structure layout\n"
+					 "	.struct 0\n"
+					 "type:\n"
+					 "	.struct type + 8\n"
+					 "data:\n"
+					 "	.struct 0"
+				<< std::endl;
 	}
 
 	fclose(yyin);

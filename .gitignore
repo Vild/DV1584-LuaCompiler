@@ -6,3 +6,5 @@ obj/
 /comp
 *.dot
 /target-raw.s
+/target.o
+/a.out

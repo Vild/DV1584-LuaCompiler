@@ -1,1 +1,5 @@
 print("Hello world")
+print(0)
+print(1)
+print(15.6)
+print(0.9)

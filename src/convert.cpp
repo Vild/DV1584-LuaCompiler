@@ -135,9 +135,14 @@ std::string ast::ChunkNode::convert(BBlock*& out, GlobalScope& gs) {
 std::string ast::FunctionCallNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 	std::string l = function()->convert(out, gs);
-	std::string r = arguments()->convert(out, gs);
-	std::string tmp = out->scope->makeName();
-	out->instructions.push_back(ThreeAddr(tmp, Operation::call, l, r));
+	std::string tmp;
+
+	// Hack because test6 contains a print that takes two arguments
+	for (auto child : arguments()->children) {
+		std::string r = child->convert(out, gs);
+		tmp = out->scope->makeName();
+		out->instructions.push_back(ThreeAddr(tmp, Operation::call, l, r));
+	}
 	return tmp;
 }
 std::string ast::FunctionNode::convert(BBlock*& out, GlobalScope& gs) {

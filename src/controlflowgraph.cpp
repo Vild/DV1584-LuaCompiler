@@ -101,11 +101,33 @@ void ThreeAddr::toASM(std::ostream& out) const {
 	out << "\t// Expand: " << name << " := " << lhs << " " << op << " " << rhs
 			<< std::endl;
 #define _(...) out << "\t" << __VA_ARGS__ << std::endl;
-	_("movq %[" << lhs << "], \t%%rax");
-	_("movq %[" << rhs << "], \t%%rbx");
+	_("movq $" << lhs << ", \t%rdi");   // Arg 1
+	_("movq $" << rhs << ", \t%rsi");   // Arg 2
+	_("movq $" << name << ", \t%rdx");  // Return place
 	switch (op) {
 		case Operation::constant:
-			_("// copy is a dummy operation");
+			_("call copyOP");
+			break;
+		case Operation::plus:
+			_("call plusOP");
+			break;
+		case Operation::minus:
+			_("call minusOP");
+			break;
+		case Operation::mul:
+			_("call mulOP");
+			break;
+		case Operation::div:
+			_("call divOP");
+			break;
+		case Operation::pow:
+			_("call powOP");
+			break;
+		case Operation::mod:
+			_("call modOP");
+			break;
+		case Operation::call:
+			_("call *%rdi");
 			break;
 		default:
 			out << "\t// Unknown op = '" << op << "'!" << std::endl;
@@ -113,9 +135,9 @@ void ThreeAddr::toASM(std::ostream& out) const {
 			break;
 	}
 
-	// NOTE: The never clean %rax at the end of each statement as this value will
-	//       be used as the return value.
-	_("movq %%rax, \t%[" << name << "]");
+		// NOTE: All functions will return (rdx + data) into %rax, as this value
+		// will
+		//   be used for the jumping at the end of the blocks.
 #undef _
 }
 
