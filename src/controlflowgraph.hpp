@@ -34,7 +34,8 @@ struct Value {
 		nil = 'N',
 		string = 's',
 		number = 'n',
-		boolean = 'b'
+		boolean = 'b',
+		function = 'f'
 	} type;
 
 	// Could probably use a union, but in that case need to work around
@@ -43,6 +44,7 @@ struct Value {
 	std::string str;  // will also be used to generate the constant name
 	double number;
 	bool boolean;
+	void* function;
 
 	Value() : type(Type::UNK) {}
 	Value(NIL nil) : type(Type::nil), str("NIL") {}
@@ -53,6 +55,8 @@ struct Value {
 			: type(Type::boolean),
 				str(boolean ? "true" : "false"),
 				boolean(boolean) {}
+	Value(void* function)
+			: type(Type::function), str("Function"), function(function) {}
 };
 std::ostream& operator<<(std::ostream& out, const Value& value);
 
@@ -70,13 +74,20 @@ struct GlobalScope {
 
 GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 
-#define enumMembers(o)                                                       \
-	/* Values (lhs) */                                                         \
-	o(constant) o(emptyTable) o(preMinus) o(not_)                              \
-			o(pound)                                     /* Math (lhs & rhs) */    \
-			o(plus) o(minus) o(mul) o(div) o(pow) o(mod) /* Compare (lhs & rhs) */ \
-			o(less) o(lequal) o(greater) o(gequal) o(equal) o(notequal) /* Misc */ \
-			o(call) o(indexof) o(concatTable) o(functionArg)
+// clang-format off
+#define enumMembers(o)																									\
+	/* Values (lhs) */																										\
+	o(constant) o(emptyTable) o(preMinus) o(not_)  o(pound)								\
+																																				\
+	/* Math (lhs & rhs) */																								\
+	o(plus) o(minus) o(mul) o(div) o(pow) o(mod)													\
+																																				\
+	/* Compare (lhs & rhs) */																							\
+	o(less) o(lequal) o(greater) o(gequal) o(equal) o(notequal)						\
+																																				\
+	/* Misc */																														\
+	o(call) o(indexof) o(concatTable) o(functionArg)
+// clang-format off
 
 enum class Operation {
 #define o(x) x,
@@ -106,7 +117,7 @@ public:
 
 	void dump() const;
 	void toDot(int id, std::ostream& out) const;
-	void toASM(std::ostream& out) const;
+	void toASM(std::ostream& out, const BBlock* block) const;
 };
 
 class BBlock {

@@ -11,13 +11,13 @@ static int indent = 0;
 struct Debug {
 	Debug(const char* func) {
 		// scope.print();
-		indent++;
+		/*indent++;
 		for (int i = 0; i < indent; i++)
 			if (!i)
 				std::cout << "| ";
 			else
 				std::cout << "  ";
-		std::cout << func << std::endl;
+		std::cout << func << std::endl;*/
 	}
 	~Debug() { indent--; }
 };

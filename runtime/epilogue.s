@@ -30,10 +30,10 @@ copyOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	push %rbp
 	mov %rsp, %rbp
 
-	movq data(%rsi), %rax
-	movq %rax, data(%rdx)
 	movq type(%rsi), %rax
 	movq %rax, type(%rdx)
+	movq data(%rsi), %rax
+	movq %rax, data(%rdx)
 
 	leave
 	retq
@@ -154,13 +154,55 @@ powOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	retq
 	.size ., .-powOP
 
-	.global print
-	.type print, %function
-print: // thisFunction = rdi, text = rsi, output = rdx
+	.global lequalOP
+	.type lequalOP, %function
+lequalOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	push %rbp
 	mov %rsp, %rbp
 
-	mov $io_write, %rdi
+	// Verify %rdi & %rsi
+	call verifyNumber
+
+	// Extract a whole number as the exponent
+	movsd data(%rsi), %xmm0
+	movsd data(%rdi), %xmm1
+
+	cmplesd %xmm1, %xmm0
+	// if xmm0 is all 1's, then true, if is all 0's then false
+	cvtsd2si %xmm0, %rax
+
+	// Save the result
+	movq %rax, data(%rdx)
+	movq $'b', type(%rdx)
+	leave
+	retq
+	.size ., .-lequalOP
+
+	.global callOP
+	.type callOP, %function
+callOP: // function = rdi, arg1 = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	mov type(%rdi), %rax
+	cmpq $'f', %rax
+	je 1f
+	mov $argIsNotFunction, %rdi
+	call runtimeError
+1:
+	call *data(%rdi)
+
+	leave
+	retq
+	.size ., .-callOP
+
+	.global __builtin_print
+	.type __builtin_print, %function
+__builtin_print: // thisFunction = rdi, text = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	mov $__builtin_io_write, %rdi
 	call *%rdi
 
 	// new line
@@ -172,11 +214,11 @@ print: // thisFunction = rdi, text = rsi, output = rdx
 
 	leave
 	retq
-	.size ., .-print
+	.size ., .-__builtin_print
 
-	.global io_write
-	.type io_write, %function
-io_write: // thisFunction = rdi, text = rsi, output = rdx
+	.global __builtin_io_write
+	.type __builtin_io_write, %function
+__builtin_io_write: // thisFunction = rdi, text = rsi, output = rdx
 	push %rbp
 	mov %rsp, %rbp
 	sub $16, %rsp
@@ -252,7 +294,7 @@ io_write: // thisFunction = rdi, text = rsi, output = rdx
 	xor %rax, %rax
 	leave
 	retq
-	.size ., .-io_write
+	.size ., .-__builtin_io_write
 
 	.global intToStr
 	.type intToStr, %function
@@ -387,6 +429,12 @@ newl:	 .asciz "\n"
 true:	 .asciz "true"
 false:	 .asciz "false"
 argIsNotNumber:	.asciz "Argument is not a number!\n"
+argIsNotFunction: .asciz "Argument is not a function!\n"
+
+	// Here are the built in global variables:
+print:
+	.quad 'f'
+	.quad __builtin_print
 
 	.bss
 	.global print_buffer

@@ -9,6 +9,9 @@
 #include <set>
 #include <token.hpp>
 
+// From main.cpp
+extern int errors;
+
 int BBlock::blockCounter = 0;
 
 void Scope::print() {
@@ -97,17 +100,48 @@ void ThreeAddr::toDot(int id, std::ostream& out) const {
 			<< rhs << '\'';
 }
 
-void ThreeAddr::toASM(std::ostream& out) const {
+static void pushVar(std::ostream& out,
+										const BBlock* block,
+										std::string name,
+										std::string reg) {
+	auto& vars = block->scope->variables;
+	ptrdiff_t pos =
+			std::distance(vars.begin(), std::find(vars.begin(), vars.end(), name));
+	if (pos >= (ptrdiff_t)vars.size()) {  // not a local variable
+		out << "\t"
+				<< "movq $" << name << ", \t%" << reg << std::endl;
+	} else {
+		out << "\t"
+				<< "lea -" << (pos + 1) * 16 << "(%rbp), \t%" << reg << std::endl;
+	}
+}
+
+void ThreeAddr::toASM(std::ostream& out, const BBlock* block) const {
 	out << "\t// Expand: " << name << " := " << lhs << " " << op << " " << rhs
 			<< std::endl;
 #define _(...) out << "\t" << __VA_ARGS__ << std::endl;
-	_("movq $" << lhs << ", \t%rdi");   // Arg 1
-	_("movq $" << rhs << ", \t%rsi");   // Arg 2
-	_("movq $" << name << ", \t%rdx");  // Return place
+	pushVar(out, block, lhs, "rdi");   // Arg 1
+	pushVar(out, block, rhs, "rsi");   // Arg 2
+	pushVar(out, block, name, "rdx");  // Return place
 	switch (op) {
+			/* Values (lhs) */
 		case Operation::constant:
 			_("call copyOP");
 			break;
+		case Operation::emptyTable:
+			_("call emptyTableOP");
+			break;
+		case Operation::preMinus:
+			_("call preMinusOP");
+			break;
+		case Operation::not_:
+			_("call notOP");
+			break;
+		case Operation::pound:
+			_("call poundOP");
+			break;
+
+			/* Math (lhs & rhs) */
 		case Operation::plus:
 			_("call plusOP");
 			break;
@@ -126,18 +160,50 @@ void ThreeAddr::toASM(std::ostream& out) const {
 		case Operation::mod:
 			_("call modOP");
 			break;
-		case Operation::call:
-			_("call *%rdi");
+
+			/* Compare (lhs & rhs) */
+		case Operation::less:
+			_("call lessOP");
 			break;
+		case Operation::lequal:
+			_("call lequalOP");
+			break;
+		case Operation::greater:
+			_("call greaterOP");
+			break;
+		case Operation::gequal:
+			_("call gequalOP");
+			break;
+		case Operation::equal:
+			_("call equalOP");
+			break;
+		case Operation::notequal:
+			_("call notequalOP");
+			break;
+
+			/* Misc */
+		case Operation::call:
+			// TODO: implement check!
+			_("call callOP");
+			break;
+		case Operation::indexof:
+			_("call indexofOP");
+			break;
+		case Operation::concatTable:
+			_("call concatTableOP");
+			break;
+		case Operation::functionArg:
+			_("call functionArgOP");  // TODO move data from rsi to stack and assign
+																// local variable
+			break;
+
 		default:
 			out << "\t// Unknown op = '" << op << "'!" << std::endl;
-			_("nop");
+			std::cout << "\x1b[1;31mUnknown op = '" << op << "'!\x1b[0m" << std::endl;
+			errors++;
+			_("int $3");
 			break;
 	}
-
-		// NOTE: All functions will return (rdx + data) into %rax, as this value
-		// will
-		//   be used for the jumping at the end of the blocks.
 #undef _
 }
 
@@ -175,9 +241,12 @@ void BBlock::toASM(std::ostream& out) const {
 	out << "." << name << ":" << std::endl;
 
 	for (size_t i = 0; i < instructions.size(); i++)
-		instructions[i].toASM(out);
+		instructions[i].toASM(out, this);
 
 	if (fExit) {
+		expect(instructions.size() > 0, "BBlock has a fExit, but no instructions!");
+		pushVar(out, this, instructions[instructions.size() - 1].name, "rax");
+		out << "mov data(%rax), %rax" << std::endl;
 		out << "test %rax, %rax" << std::endl;
 		out << "jnz ." << tExit->name << std::endl;
 		out << "jmp ." << fExit->name << std::endl;

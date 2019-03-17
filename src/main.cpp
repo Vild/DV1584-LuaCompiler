@@ -14,6 +14,8 @@ yy::location loc;
 
 extern FILE* yyin;
 
+int errors = 0;
+
 void yy::parser::error(const location_type& loc, const std::string& err) {
 	std::cerr << *loc.begin.filename << ":" << loc.begin.line << ":"
 						<< loc.begin.column;
@@ -64,18 +66,45 @@ void toDot(std::ostream& out, GlobalScope& gs) {
 
 void toASM(std::ostream& out, GlobalScope& gs) {
 	std::string sName;
-	visitAllBlocks(gs, [&out, &sName](std::string name, BBlock* block) {
-		if (sName != name) {
-			if (sName.size())
-				out << "\tret\n.size ., .-" << sName << std::endl << std::endl;
-			sName = name;
-			out << ".global " << name << "\n.type " << name << ", %function\n"
-					<< name << ": " << std::endl;
+	auto newFunc = [&out](std::string name, BBlock* block) {
+		if (!name.size())
+			return;
+		auto& vars = block->scope->variables;
+		auto size = vars.size() * 16 /* Each variable is 16-bytes */;
+		out << ".global " << name << std::endl;
+		out << ".type " << name << ", %function" << std::endl;
+		out << name << ": " << std::endl;
+		out << "\tpushq %rbp" << std::endl;
+		out << "\tmov %rsp, %rbp" << std::endl;
+		if (size) {
+			out << "\tsub $" << size << ", %rsp" << std::endl;
+			out << "\tand $-" << size << ", %rsp" << std::endl;
+			for (size_t i = 0; i < vars.size(); i++) {
+				std::string variable = vars[i];
+				out << "\t// " << variable << " is at &(-"
+						<< (i + 1) * 16 /* The size of a variable */ << "(%rbp))"
+						<< std::endl;
+			}
 		}
-		block->toASM(out);
-		if (sName.size())
-			out << "\tret\n.size ., .-" << sName << std::endl << std::endl;
-	});
+	};
+	auto endFunc = [&out](std::string name) {
+		if (!name.size())
+			return;
+		out << "\tleave" << std::endl;
+		out << "\tret" << std::endl;
+		out << "\n.size ., .-" << name << std::endl;
+		out << std::endl;
+	};
+	visitAllBlocks(
+			gs, [&out, &sName, newFunc, endFunc](std::string name, BBlock* block) {
+				if (sName != name) {
+					endFunc(sName);
+					sName = name;
+					newFunc(sName, block);
+				}
+				block->toASM(out);
+			});
+	endFunc(sName);
 }
 
 int main(int argc, char** argv) {
@@ -83,6 +112,10 @@ int main(int argc, char** argv) {
 	if (argc > 1 && std::string(argv[1]) != "-") {
 		name = argv[1];
 		yyin = fopen(argv[1], "rb");
+		if (!yyin) {
+			std::cerr << argv[1] << " does not exist!" << std::endl;
+			return 1;
+		}
 	}
 	loc.initialize(&name);
 
@@ -104,7 +137,7 @@ int main(int argc, char** argv) {
 
 	GlobalScope gs = getBBlocks(root);
 
-	dumpCFG(gs);
+	// dumpCFG(gs);
 	{
 		std::ofstream out("cfg.dot");
 		out << "digraph bblocks {" << std::endl;
@@ -218,14 +251,17 @@ int main(int argc, char** argv) {
 
 		// Need to be last
 		out << "// Define structure layout\n"
-					 "	.struct 0\n"
+					 "\t.struct 0\n"
 					 "type:\n"
-					 "	.struct type + 8\n"
+					 "\t.struct type + 8\n"
 					 "data:\n"
-					 "	.struct 0"
+					 "\t.struct 0"
 				<< std::endl;
 	}
 
 	fclose(yyin);
-	return 0;
+
+	if (errors)
+		std::cout << std::endl << std::endl << std::endl << std::endl;
+	return errors;
 }
