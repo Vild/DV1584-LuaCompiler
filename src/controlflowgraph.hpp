@@ -26,6 +26,9 @@ struct Scope {
 };
 
 struct NIL {};
+struct Function {};
+struct Object {};
+struct Array {};
 
 struct Value {
 	// This is a char because the helps generate the constant names
@@ -35,7 +38,9 @@ struct Value {
 		string = 's',
 		number = 'n',
 		boolean = 'b',
-		function = 'f'
+		function = 'f',
+		object = 'o',
+		array = 'a'
 	} type;
 
 	// Could probably use a union, but in that case need to work around
@@ -44,7 +49,9 @@ struct Value {
 	std::string str;  // will also be used to generate the constant name
 	double number;
 	bool boolean;
-	void* function;
+	Function* function;
+	Object* object;
+	Array* array;
 
 	Value() : type(Type::UNK) {}
 	Value(NIL nil) : type(Type::nil), str("NIL") {}
@@ -55,8 +62,12 @@ struct Value {
 			: type(Type::boolean),
 				str(boolean ? "true" : "false"),
 				boolean(boolean) {}
-	Value(void* function)
+	Value(Function* function)
 			: type(Type::function), str("Function"), function(function) {}
+	Value(Object* object)
+		: type(Type::object), str("Object"), object(object) {}
+	Value(Array* array)
+		: type(Type::array), str("Array"), array(array) {}
 };
 std::ostream& operator<<(std::ostream& out, const Value& value);
 

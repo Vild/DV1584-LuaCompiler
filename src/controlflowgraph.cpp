@@ -193,8 +193,8 @@ void ThreeAddr::toASM(std::ostream& out, const BBlock* block) const {
 			_("call concatTableOP");
 			break;
 		case Operation::functionArg:
-			_("call functionArgOP");  // TODO move data from rsi to stack and assign
-																// local variable
+			// TODO move data from rsi to stack and assign local variable
+			_("call functionArgOP");
 			break;
 
 		default:

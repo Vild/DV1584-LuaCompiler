@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
 			out << std::endl;
 		}
 
-		out << ".section .data\n";
+		out << ".bss\n";
 		for (const std::string& str : gs.globals) {
 			out << ".align 8" << std::endl;
 			out << str << ": " << std::endl;
@@ -235,12 +235,6 @@ int main(int argc, char** argv) {
 			out << "\t.quad 0" << std::endl;
 		}
 		for (auto scope : gs.scopes) {
-			/*for (const std::string & str : scope->variables) {
-				out << ".align 8" << std::endl;
-				out << str << ": " << std::endl;
-				out << "\t.quad 0" << std::endl; // TYPE::UNK
-				out << "\t.quad 0" << std::endl;
-				}*/
 			for (int i = 0; i < scope->tmpCounter; i++) {
 				out << ".align 8" << std::endl;
 				out << scope->prefix << "_" << i << ": " << std::endl;

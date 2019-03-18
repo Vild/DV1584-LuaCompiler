@@ -59,10 +59,10 @@ std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 	for (size_t i = 0; i < right.size(); i++)
 		tmpVars[i] = right[i]->convert(out, gs);
 	for (size_t i = 0; i < left.size(); i++) {
+			//TODO: Add check if indexof, then rewire to indexofRef? or use indexOfAssign? or something
 		std::string l = left[i]->convert(out, gs);
 		out->instructions.push_back(
 				ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
-		gs.addGlobal(l);
 	}
 	return "";
 }
@@ -174,8 +174,9 @@ std::string ast::IndexOfNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 	std::string l = object()->convert(out, gs);
 	std::string r = index()->convert(out, gs);
+	std::string rTmp = gs.addConstant(Value{r});
 	std::string tmp = out->scope->makeName();
-	out->instructions.push_back(ThreeAddr(tmp, Operation::indexof, l, r));
+	out->instructions.push_back(ThreeAddr(tmp, Operation::indexof, l, rTmp));
 	return tmp;
 }
 std::string ast::LocalAssignValueNode::convert(BBlock*& out, GlobalScope& gs) {

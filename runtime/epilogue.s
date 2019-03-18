@@ -196,6 +196,32 @@ callOP: // function = rdi, arg1 = rsi, output = rdx
 	retq
 	.size ., .-callOP
 
+	.global indexofOP
+	.type indexofOP, %function
+indexofOP: // table = rdi, index = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	// TODO: implement array and array indexing
+	mov type(%rdi), %rax
+	cmpq $'o', %rax
+	je .indexObject
+	cmpq $'a', %rax
+	je .indexArray
+	mov $argIsNotObjectOrArray, %rdi
+	call runtimeError
+.indexObject:
+	//call *data(%rdi)
+
+	jmp .return
+.indexArray:
+	mov $argIsNotObjectOrArray, %rdi
+	call runtimeError
+.return
+	leave
+	retq
+	.size ., .-indexofOP
+
 	.global __builtin_print
 	.type __builtin_print, %function
 __builtin_print: // thisFunction = rdi, text = rsi, output = rdx
@@ -430,11 +456,41 @@ true:	 .asciz "true"
 false:	 .asciz "false"
 argIsNotNumber:	.asciz "Argument is not a number!\n"
 argIsNotFunction: .asciz "Argument is not a function!\n"
+argIsNotObjectOrArray:	 .asciz "Argument is not a object or array!\n" 
+c_write:	.asciz "write"
+c_read:	 .asciz "read"
 
 	// Here are the built in global variables:
+	.align 8
 print:
 	.quad 'f'
 	.quad __builtin_print
+
+	.align 8
+io:
+	.quad 'o'
+	.quad __io_object
+
+	.align 8
+__io_object:
+	// The number of items
+	.quad ((__io_object_end - . - 8) / 8) / 2
+	// pair<char*, Variable>
+	.quad c_write
+	.quad __io_write
+	.quad c_read
+	.quad __io_read
+__io_object_end:
+
+	.align 8
+__io_write:
+	.quad 'f'
+	.quad __builtin_io_write
+
+	.align 8
+__io_read:
+	.quad 'f'
+	.quad 0
 
 	.bss
 	.global print_buffer
@@ -442,4 +498,6 @@ print_buffer:
 	// This will be more than enought to store a UINT64_MAX number.
 	.space 32
 print_buffer_end:
+	// The '\0' at the end of the string!
+	.space 1
 	// </EPILOGUE>

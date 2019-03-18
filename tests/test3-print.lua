@@ -5,7 +5,7 @@ x=1
 for i = 2,n do
 	 x = x * i
 end
-print("factorial of ")
-print(n)
-print(" is ")
+io.write("factorial of ")
+io.write(n)
+io.write(" is ")
 print(x)
