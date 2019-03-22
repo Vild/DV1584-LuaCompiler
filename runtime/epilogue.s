@@ -164,8 +164,8 @@ lequalOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	call verifyNumber
 
 	// Extract a whole number as the exponent
-	movsd data(%rsi), %xmm0
-	movsd data(%rdi), %xmm1
+	movsd data(%rdi), %xmm0
+	movsd data(%rsi), %xmm1
 
 	cmplesd %xmm1, %xmm0
 	// if xmm0 is all 1's, then true, if is all 0's then false
@@ -201,6 +201,8 @@ callOP: // function = rdi, arg1 = rsi, output = rdx
 indexofOP: // table = rdi, index = rsi, output = rdx
 	push %rbp
 	mov %rsp, %rbp
+	sub $24, %rsp
+	and $-16, %rsp
 
 	// TODO: implement array and array indexing
 	mov type(%rdi), %rax
@@ -213,120 +215,66 @@ indexofOP: // table = rdi, index = rsi, output = rdx
 .indexObject:
 	//call *data(%rdi)
 
+	mov type(%rsi), %rax
+	cmpq $'s', %rax
+	je 1f
+	mov $indexIsNotString, %rdi
+	call runtimeError
+1:
+	mov data(%rsi), %rsi
+
+	mov data(%rdi), %rdi
+	mov obj_size(%rdi), %rcx
+	lea obj_data(%rdi), %rdi
+
+	// rdi = obj_data, rsi = str index, rcx = obj entries count
+
+1:
+	mov %rdi, -8(%rbp)
+	mov %rsi, -16(%rbp)
+	mov %rcx, -24(%rbp)
+
+	mov obj_data_name(%rdi), %rdi
+
+	call strcmp
+
+	mov -24(%rbp), %rcx
+	mov -16(%rbp), %rsi
+	mov -8(%rbp), %rdi
+
+	// obj_data_name == index
+	test %rax, %rax
+	jnz 2f
+
+	lea obj_data_sizeof(%rdi), %rdi
+	loop 1b
+
+	mov $objectMemberMissing, %rdi
+	call runtimeError
+2:
+	mov obj_data_var(%rdi), %rdi
+
+	movq type(%rdi), %rax
+	movq %rax, type(%rdx)
+	movq data(%rdi), %rax
+	movq %rax, data(%rdx)
+
 	jmp .return
 .indexArray:
 	mov $argIsNotObjectOrArray, %rdi
 	call runtimeError
-.return
+.return:
 	leave
 	retq
 	.size ., .-indexofOP
-
-	.global __builtin_print
-	.type __builtin_print, %function
-__builtin_print: // thisFunction = rdi, text = rsi, output = rdx
-	push %rbp
-	mov %rsp, %rbp
-
-	mov $__builtin_io_write, %rdi
-	call *%rdi
-
-	// new line
-	mov $1, %rdx
-	mov $newl, %rsi
-  mov $__NR_write, %rax
-  mov $1, %rdi
-  syscall
-
-	leave
-	retq
-	.size ., .-__builtin_print
-
-	.global __builtin_io_write
-	.type __builtin_io_write, %function
-__builtin_io_write: // thisFunction = rdi, text = rsi, output = rdx
-	push %rbp
-	mov %rsp, %rbp
-	sub $16, %rsp
-	and $-16, %rsp
-	// Backup rdi
-	mov %rsi, -16(%rbp)
-
-	mov type(%rsi), %rax
-
-	// %rdi will be set to the string
-	cmpq $'N', %rax
-	je .printNil
-	cmpq $'s', %rax
-	je .printString
-	cmpq $'n', %rax
-	je .printNumber
-	cmpq $'b', %rax
-	je .printBool
-
-	mov $unknownType, %rdi
-	jmp .printIt
-
-.printNil:
-	mov $nil, %rdi
-	jmp .printIt
-
-.printString:
-	mov data(%rsi), %rdi
-	jmp .printIt
-
-.printNumber:
-	// The idea behind this code is to do (int)(val * 10), and then just insert a
-	// '.' before the last character. Probably not the best way of doing it, but
-	// it is the easiest way, and it will pass the test-cases.
-
-	movsd data(%rsi), %xmm0
-	mov $10, %rax
-	cvtsi2sd %rax, %xmm1
-	mulsd %xmm1, %xmm0
-	cvtsd2si %xmm0, %rdi
-
-	call intToStr
-	mov %rax, %rdi
-
-	jmp .printIt
-
-.printBool:
-	mov data(%rsi), %rax
-	test %rax, %rax
-	jz 1f
-	mov $true, %rdi
-	jmp 2f
-1:
-	mov $false, %rdi
-2:
-	jmp .printIt
-
-.printIt:
-	mov %rdi, -8(%rbp)
-	call strlen
-
-	// Length
-	mov %rax, %rdx
-	// string
-	mov -8(%rbp), %rsi
-
-	// sys number
-  mov $__NR_write, %rax
-	// stdout
-  mov $1, %rdi
-  syscall
-
-	xor %rax, %rax
-	leave
-	retq
-	.size ., .-__builtin_io_write
 
 	.global intToStr
 	.type intToStr, %function
 intToStr:	// rdi = number
 	push %rbp
 	mov %rsp, %rbp
+	sub $8, %rsp
+	and $-16, %rsp
 
 	xor %rcx, %rcx
 
@@ -362,10 +310,10 @@ intToStr:	// rdi = number
 	// %rdx = %rax % 10; %rax = %rax / 10
 	div %r8
 	add $'0', %rdx
-	push %rax
+	mov %rax, -8(%rbp)
 	mov %rdx, %rax
 	movb %al, (%rdi)
-	pop %rax
+	mov -8(%rbp), %rax
 
 	// Add the dot?
 	test %r10, %r10
@@ -401,14 +349,16 @@ intToStr:	// rdi = number
 runtimeError: // msg = rdi
 	push %rbp
 	mov %rsp, %rbp
+	sub $8, %rsp
+	and $-16, %rsp
 
-	push %rdi
+	mov %rdi, -8(%rbp)
 	call strlen
 
 	// Length
 	mov %rax, %rdx
 	// string
-	pop %rsi
+	mov -8(%rbp), %rsi
 
 
 	// sys number
@@ -447,6 +397,32 @@ strlen: // arg1 = rdi
 	retq
 	.size ., .-strlen
 
+	.global strcmp
+	.type strcmp, %function
+strcmp: // arg1 = rdi, arg2 = rsi
+	push %rbp
+	mov %rsp, %rbp
+	sub $8, %rsp
+	and $-16, %rsp
+	xor %rax, %rax
+
+	mov %rdi, -8(%rbp)
+	call strlen
+	mov -8(%rbp), %rdi
+
+	mov %rax, %rcx
+	rep cmpsb
+	jne 1f
+
+	mov $1, %rax
+	jmp 2f
+1:
+	mov $0, %rax
+2:
+	leave
+	retq
+	.size ., .-strcmp
+
 	.section .rodata
 notImplemented:	.asciz "Not implemented!\n"
 unknownType:	 .asciz "<Unknown type>"
@@ -454,43 +430,12 @@ nil:	 .asciz "<NIL>"
 newl:	 .asciz "\n"
 true:	 .asciz "true"
 false:	 .asciz "false"
+argIsNotString:	.asciz "Argument is not a string!\n"
 argIsNotNumber:	.asciz "Argument is not a number!\n"
 argIsNotFunction: .asciz "Argument is not a function!\n"
-argIsNotObjectOrArray:	 .asciz "Argument is not a object or array!\n" 
-c_write:	.asciz "write"
-c_read:	 .asciz "read"
-
-	// Here are the built in global variables:
-	.align 8
-print:
-	.quad 'f'
-	.quad __builtin_print
-
-	.align 8
-io:
-	.quad 'o'
-	.quad __io_object
-
-	.align 8
-__io_object:
-	// The number of items
-	.quad ((__io_object_end - . - 8) / 8) / 2
-	// pair<char*, Variable>
-	.quad c_write
-	.quad __io_write
-	.quad c_read
-	.quad __io_read
-__io_object_end:
-
-	.align 8
-__io_write:
-	.quad 'f'
-	.quad __builtin_io_write
-
-	.align 8
-__io_read:
-	.quad 'f'
-	.quad 0
+argIsNotObjectOrArray:	 .asciz "Argument is not a object or array!\n"
+objectMemberMissing: .asciz "Object member could not be found!\n"
+indexIsNotString:	.asciz "Object index is not a string!\n"
 
 	.bss
 	.global print_buffer

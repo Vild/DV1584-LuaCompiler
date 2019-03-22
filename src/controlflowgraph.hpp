@@ -29,6 +29,7 @@ struct NIL {};
 struct Function {};
 struct Object {};
 struct Array {};
+struct Ref {};
 
 struct Value {
 	// This is a char because the helps generate the constant names
@@ -40,7 +41,8 @@ struct Value {
 		boolean = 'b',
 		function = 'f',
 		object = 'o',
-		array = 'a'
+		array = 'a',
+		ref = 'r'
 	} type;
 
 	// Could probably use a union, but in that case need to work around
@@ -52,6 +54,7 @@ struct Value {
 	Function* function;
 	Object* object;
 	Array* array;
+	Ref* ref;
 
 	Value() : type(Type::UNK) {}
 	Value(NIL nil) : type(Type::nil), str("NIL") {}
@@ -64,10 +67,9 @@ struct Value {
 				boolean(boolean) {}
 	Value(Function* function)
 			: type(Type::function), str("Function"), function(function) {}
-	Value(Object* object)
-		: type(Type::object), str("Object"), object(object) {}
-	Value(Array* array)
-		: type(Type::array), str("Array"), array(array) {}
+	Value(Object* object) : type(Type::object), str("Object"), object(object) {}
+	Value(Array* array) : type(Type::array), str("Array"), array(array) {}
+	Value(Ref* ref) : type(Type::ref), str("Ref"), ref(ref) {}
 };
 std::ostream& operator<<(std::ostream& out, const Value& value);
 
@@ -97,7 +99,7 @@ GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 	o(less) o(lequal) o(greater) o(gequal) o(equal) o(notequal)						\
 																																				\
 	/* Misc */																														\
-	o(call) o(indexof) o(concatTable) o(functionArg)
+	o(call) o(indexof) o(indexofRef) o(concatTable) o(functionArg)
 // clang-format off
 
 enum class Operation {

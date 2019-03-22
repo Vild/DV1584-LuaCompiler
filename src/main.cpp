@@ -78,7 +78,7 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 		out << "\tmov %rsp, %rbp" << std::endl;
 		if (size) {
 			out << "\tsub $" << size << ", %rsp" << std::endl;
-			out << "\tand $-" << size << ", %rsp" << std::endl;
+			out << "\tand $-16, %rsp" << std::endl;
 			for (size_t i = 0; i < vars.size(); i++) {
 				std::string variable = vars[i];
 				out << "\t// " << variable << " is at &(-"
@@ -179,6 +179,7 @@ int main(int argc, char** argv) {
 		std::ofstream out("target-raw.s");
 		out << "\t.set __NR_exit, " << __NR_exit << std::endl;
 		out << "\t.set __NR_write, " << __NR_write << std::endl;
+		out << "\t.set __NR_read, " << __NR_read << std::endl;
 		{
 			std::ifstream in("runtime/prologue.s");
 			std::copy(std::istreambuf_iterator<char>(in),
@@ -194,6 +195,15 @@ int main(int argc, char** argv) {
 
 		{
 			std::ifstream in("runtime/epilogue.s");
+			std::copy(std::istreambuf_iterator<char>(in),
+								std::istreambuf_iterator<char>(),
+								std::ostreambuf_iterator<char>(out));
+		}
+
+		out << std::endl;
+
+		{
+			std::ifstream in("runtime/builtin.s");
 			std::copy(std::istreambuf_iterator<char>(in),
 								std::istreambuf_iterator<char>(),
 								std::ostreambuf_iterator<char>(out));
@@ -249,6 +259,16 @@ int main(int argc, char** argv) {
 					 "type:\n"
 					 "\t.struct type + 8\n"
 					 "data:\n"
+					 "\t.struct 0\n"
+					 "obj_size:\n"
+					 "\t.struct obj_size + 8\n"
+					 "obj_data:\n"
+					 "\t.struct 0\n"
+					 "obj_data_name:\n"
+					 "\t.struct obj_data_name + 8\n"
+					 "obj_data_var:\n"
+					 "\t.struct obj_data_var + 8\n"
+					 "obj_data_sizeof:\n"
 					 "\t.struct 0"
 				<< std::endl;
 	}

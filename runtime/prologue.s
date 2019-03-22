@@ -1,7 +1,7 @@
 	// <PROLOGUE>
 
-.code64
-.text
+	.code64
+	.text
 
 	.global _start
 	.type _start, %function

@@ -189,6 +189,9 @@ void ThreeAddr::toASM(std::ostream& out, const BBlock* block) const {
 		case Operation::indexof:
 			_("call indexofOP");
 			break;
+		case Operation::indexofRef:
+			_("call indexofRefOP");
+			break;
 		case Operation::concatTable:
 			_("call concatTableOP");
 			break;

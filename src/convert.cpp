@@ -49,6 +49,7 @@ std::string ast::NilNode::convert(BBlock*& out, GlobalScope& gs) {
 	return gs.addConstant(Value(NIL()));
 }
 
+static bool indexOfRef = false;  // TODO: Remove this global
 std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 
@@ -56,14 +57,20 @@ std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 	auto& right = values()->children;
 
 	std::vector<std::string> tmpVars(right.size());
+	bool oldIndexOfRef = indexOfRef;
+	indexOfRef = false;
 	for (size_t i = 0; i < right.size(); i++)
 		tmpVars[i] = right[i]->convert(out, gs);
+	indexOfRef = true;
 	for (size_t i = 0; i < left.size(); i++) {
-			//TODO: Add check if indexof, then rewire to indexofRef? or use indexOfAssign? or something
+		// TODO: Add check if indexof, then rewire to indexofRef? or use
+		// indexOfAssign? or something
 		std::string l = left[i]->convert(out, gs);
 		out->instructions.push_back(
 				ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
+		gs.addGlobal(l);
 	}
+	indexOfRef = oldIndexOfRef;
 	return "";
 }
 std::string ast::BinOPNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -176,7 +183,8 @@ std::string ast::IndexOfNode::convert(BBlock*& out, GlobalScope& gs) {
 	std::string r = index()->convert(out, gs);
 	std::string rTmp = gs.addConstant(Value{r});
 	std::string tmp = out->scope->makeName();
-	out->instructions.push_back(ThreeAddr(tmp, Operation::indexof, l, rTmp));
+	out->instructions.push_back(ThreeAddr(
+			tmp, indexOfRef ? Operation::indexofRef : Operation::indexof, l, rTmp));
 	return tmp;
 }
 std::string ast::LocalAssignValueNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -313,8 +321,8 @@ std::string ast::ForLoopNode::convert(BBlock*& out, GlobalScope& gs) {
 	body()->convert(bodyBlock, gs);
 	{
 		std::string tmp = out->scope->makeName();
-		bodyBlock->instructions.push_back(
-				ThreeAddr(tmp, Operation::plus, counterName, "1"));
+		bodyBlock->instructions.push_back(ThreeAddr(
+				tmp, Operation::plus, counterName, gs.addConstant(Value{1.0})));
 		bodyBlock->instructions.push_back(
 				ThreeAddr(counterName, Operation::constant, tmp, tmp));
 	}
