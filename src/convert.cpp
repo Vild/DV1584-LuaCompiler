@@ -13,10 +13,10 @@ struct Debug {
 		// scope.print();
 		/*indent++;
 		for (int i = 0; i < indent; i++)
-			if (!i)
-				std::cout << "| ";
-			else
-				std::cout << "  ";
+		  if (!i)
+		    std::cout << "| ";
+		  else
+		    std::cout << "  ";
 		std::cout << func << std::endl;*/
 	}
 	~Debug() { indent--; }
@@ -67,7 +67,7 @@ std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 		// indexOfAssign? or something
 		std::string l = left[i]->convert(out, gs);
 		out->instructions.push_back(
-				ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
+		    ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
 		if (l[0] != '_')
 			gs.addGlobal(l);
 	}
@@ -173,12 +173,14 @@ std::string ast::FunctionNode::convert(BBlock*& out, GlobalScope& gs) {
 		funcBlock->scope->variables.push_back(name);
 		auto val = "0";
 		switch (i) {
-		case 0:
-			funcBlock->instructions.push_back(ThreeAddr(name, Operation::functionArg, val, val));
-			break;
-		default:
-			expect(0, "A function can not be defined to take more than one argument!");
-			break;
+			case 0:
+				funcBlock->instructions.push_back(
+				    ThreeAddr(name, Operation::functionArg, val, val));
+				break;
+			default:
+				expect(0,
+				       "A function can not be defined to take more than one argument!");
+				break;
 		}
 	}
 
@@ -193,7 +195,7 @@ std::string ast::IndexOfNode::convert(BBlock*& out, GlobalScope& gs) {
 	std::string rTmp = gs.addConstant(Value{r});
 	std::string tmp = out->scope->makeName();
 	out->instructions.push_back(ThreeAddr(
-			tmp, indexOfRef ? Operation::indexofRef : Operation::indexof, l, rTmp));
+	    tmp, indexOfRef ? Operation::indexofRef : Operation::indexof, l, rTmp));
 	return tmp;
 }
 std::string ast::LocalAssignValueNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -209,9 +211,9 @@ std::string ast::ReturnNode::convert(BBlock*& out, GlobalScope& gs) {
 	std::string val = returnValue()->convert(returnBlock, gs);
 	std::string tmp = out->scope->makeName();
 	returnBlock->instructions.push_back(
-			ThreeAddr(tmp, Operation::constant, val, val));
+	    ThreeAddr(tmp, Operation::constant, val, val));
 	returnBlock->instructions.push_back(
-			ThreeAddr("rax", Operation::returnValue, tmp, tmp));
+	    ThreeAddr("rax", Operation::returnValue, tmp, tmp));
 
 	out = returnBlock;
 
@@ -225,7 +227,7 @@ std::string ast::TableNode::convert(BBlock*& out, GlobalScope& gs) {
 	for (auto& child : children) {
 		auto name = child->convert(out, gs);
 		out->instructions.push_back(
-				ThreeAddr(tbl, Operation::concatTable, tbl, name));
+		    ThreeAddr(tbl, Operation::concatTable, tbl, name));
 	}
 	return tbl;
 }
@@ -273,7 +275,7 @@ std::string ast::ExpressionListNode::convert(BBlock*& out, GlobalScope& gs) {
 	for (auto& child : children) {
 		auto name = child->convert(out, gs);
 		out->instructions.push_back(
-				ThreeAddr(tbl, Operation::concatTable, tbl, name));
+		    ThreeAddr(tbl, Operation::concatTable, tbl, name));
 	}
 	return tbl;
 }
@@ -304,38 +306,38 @@ std::string ast::ForLoopNode::convert(BBlock*& out, GlobalScope& gs) {
 
 	// TODO: fix hack
 	bool backupVar =
-			std::find(vars.begin(), vars.end(), counterName) != vars.end() ||
-			std::find(gs.globals.begin(), gs.globals.end(), counterName) !=
-					gs.globals.end();
+	    std::find(vars.begin(), vars.end(), counterName) != vars.end() ||
+	    std::find(gs.globals.begin(), gs.globals.end(), counterName) !=
+	        gs.globals.end();
 	if (backupVar) {
 		std::string backupVarName = out->scope->makeName();
 		out->instructions.push_back(ThreeAddr(backupVarName, Operation::constant,
-																					counterName, counterName));
+		                                      counterName, counterName));
 		doneBlock->instructions.push_back(ThreeAddr(
-				counterName, Operation::constant, backupVarName, backupVarName));
+		    counterName, Operation::constant, backupVarName, backupVarName));
 	} else {
 		vars.push_back(counterName);
 		auto nil = gs.addConstant(Value(NIL()));
 		doneBlock->instructions.push_back(
-				ThreeAddr(counterName, Operation::constant, nil,
-									nil));  // TODO: replace with real nil value
+		    ThreeAddr(counterName, Operation::constant, nil,
+		              nil));  // TODO: replace with real nil value
 	}
 
 	// counter = start
 	out->instructions.push_back(
-			ThreeAddr(counterName, Operation::constant, start, start));
+	    ThreeAddr(counterName, Operation::constant, start, start));
 
 	// if (counter <= end) goto body; else goto done
 	compareBlock->instructions.push_back(
-			ThreeAddr(out->scope->makeName(), Operation::lequal, counterName, end));
+	    ThreeAddr(out->scope->makeName(), Operation::lequal, counterName, end));
 
 	body()->convert(bodyBlock, gs);
 	{
 		std::string tmp = out->scope->makeName();
 		bodyBlock->instructions.push_back(ThreeAddr(
-				tmp, Operation::plus, counterName, gs.addConstant(Value{1.0})));
+		    tmp, Operation::plus, counterName, gs.addConstant(Value{1.0})));
 		bodyBlock->instructions.push_back(
-				ThreeAddr(counterName, Operation::constant, tmp, tmp));
+		    ThreeAddr(counterName, Operation::constant, tmp, tmp));
 	}
 	bodyBlock->tExit = compareBlock;
 

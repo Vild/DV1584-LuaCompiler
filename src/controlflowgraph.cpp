@@ -4,9 +4,9 @@
 #include <ast.hpp>
 #include <cctype>
 #include <controlflowgraph.hpp>
+#include <cstring>
 #include <expect.hpp>
 #include <iostream>
-#include <cstring>
 #include <set>
 #include <sstream>
 #include <token.hpp>
@@ -18,7 +18,7 @@ int BBlock::blockCounter = 0;
 
 void Scope::print() {
 	std::cout << "Scope(prefix: " << prefix << ", tmpCounter: " << tmpCounter
-						<< ")" << std::endl;
+	          << ")" << std::endl;
 }
 
 std::ostream& operator<<(std::ostream& out, const Value& value) {
@@ -41,6 +41,10 @@ std::ostream& operator<<(std::ostream& out, const Value& value) {
 	return out;
 }
 
+GlobalScope::GlobalScope() {
+	addConstant(Value{NIL()});
+}
+
 GlobalScope::~GlobalScope() {
 	std::set<BBlock*> done, todo;
 	for (std::pair<std::string, BBlock*> bb : bblocks)
@@ -61,12 +65,12 @@ GlobalScope::~GlobalScope() {
 std::string GlobalScope::addConstant(const Value& value) {
 	std::string index = std::string("_c") + (char)value.type + "_" + value.str;
 	std::replace_if(index.begin(), index.end(),
-									[](char ch) { return !isalnum(ch); }, '_');
+	                [](char ch) { return !isalnum(ch); }, '_');
 	if (constants[index].type !=
-			Value::Type::UNK)  // There is already a constant with this index
+	    Value::Type::UNK)  // There is already a constant with this index
 		expect(constants[index].str == value.str,
-					 "Two different constants generated the same name: " + index +
-							 ", test: '" + constants[index].str + "' != '" + value.str + "'");
+		       "Two different constants generated the same name: " + index +
+		           ", test: '" + constants[index].str + "' != '" + value.str + "'");
 	constants[index] = value;
 	return index;
 }
@@ -99,39 +103,39 @@ void ThreeAddr::toDot(int id, std::ostream& out) const {
 	if (id)
 		out << '|' << "<i" << id << '>';
 	out << name << " := " << '\'' << lhs << '\'' << " " << op << " " << '\''
-			<< rhs << '\'';
+	    << rhs << '\'';
 }
 
 static void pushVar(std::ostream& out,
-										const BBlock* block,
-										std::string name,
-										std::string reg) {
+                    const BBlock* block,
+                    std::string name,
+                    std::string reg) {
 	auto& vars = block->scope->variables;
 	ptrdiff_t pos =
-			std::distance(vars.begin(), std::find(vars.begin(), vars.end(), name));
+	    std::distance(vars.begin(), std::find(vars.begin(), vars.end(), name));
 
 	if (pos < (ptrdiff_t)vars.size()) {  // a local variable
-		out << "\t"
-				<< "lea -" << (pos + 1) * 16 << "(%rbp), \t%" << reg << std::endl;
-	} else if (strncmp(name.c_str(), block->scope->prefix.c_str(), block->scope->prefix.size()) == 0) {
-		std::istringstream iss(name.substr(block->scope->prefix.size()+1));
+		out << "\tlea -" << (pos + 1) * 16 << "(%rbp), %" << reg << std::endl;
+	} else if (strncmp(name.c_str(), block->scope->prefix.c_str(),
+	                   block->scope->prefix.size()) == 0) {
+		std::istringstream iss(name.substr(block->scope->prefix.size() + 1));
 		size_t idx;
 		iss >> idx;
-		out << "\t"
-				<< "lea -" << (vars.size() + idx + 1) * 16 << "(%rbp), \t%" << reg << std::endl;
+		out << "\tlea -" << (vars.size() + idx + 1) * 16 << "(%rbp), %" << reg
+		    << std::endl;
 	} else {
-		out << "\t"
-				<< "movq $" << name << ", \t%" << reg << std::endl;
+		out << "\tmovq $" << name << ", %" << reg << std::endl;
 	}
 }
 
 void ThreeAddr::toASM(std::ostream& out, const BBlock* block) const {
 	out << "\t// Expand: " << name << " := " << lhs << " " << op << " " << rhs
-			<< std::endl;
+	    << std::endl;
 #define _(...) out << "\t" << __VA_ARGS__ << std::endl;
 	if (op == Operation::functionArg) {
 		pushVar(out, block, name, "rdx");  // Return place
-		// The function will already have the input argument in %rsi so this will work
+		// The function will already have the input argument in %rsi so this will
+		// work
 		_("call copyOP");
 		return;
 	} else if (op == Operation::returnValue) {
@@ -219,7 +223,7 @@ void ThreeAddr::toASM(std::ostream& out, const BBlock* block) const {
 			break;
 		case Operation::functionArg:
 			expect(0, "Should never reach this");
-			break;			
+			break;
 		default:
 			out << "\t// Unknown op = '" << op << "'!" << std::endl;
 			std::cout << "\x1b[1;31mUnknown op = '" << op << "'!\x1b[0m" << std::endl;
@@ -235,9 +239,9 @@ void BBlock::dump() const {
 	for (const auto& i : instructions)
 		i.dump();
 	std::cout << "True:  " << (tExit ? tExit->name : "") << " (" << tExit << ')'
-						<< std::endl;
+	          << std::endl;
 	std::cout << "False: " << (fExit ? fExit->name : "") << " (" << fExit << ')'
-						<< std::endl;
+	          << std::endl;
 }
 
 void BBlock::toDot(std::ostream& out) const {
@@ -252,12 +256,12 @@ void BBlock::toDot(std::ostream& out) const {
 
 	if (fExit) {
 		out << name << ":i" << lastID << " -> " << tExit->name
-				<< ":i0[color=green,label=\"true\"];" << std::endl;
+		    << ":i0[color=green,label=\"true\"];" << std::endl;
 		out << name << ":i" << lastID << " -> " << fExit->name
-				<< ":i0[color=red,label=\"false\"];" << std::endl;
+		    << ":i0[color=red,label=\"false\"];" << std::endl;
 	} else if (tExit)
 		out << name << ":i" << lastID << " -> " << tExit->name << ":i0;"
-				<< std::endl;
+		    << std::endl;
 }
 
 void BBlock::toASM(std::ostream& out) const {
@@ -269,12 +273,12 @@ void BBlock::toASM(std::ostream& out) const {
 	if (fExit) {
 		expect(instructions.size() > 0, "BBlock has a fExit, but no instructions!");
 		pushVar(out, this, instructions[instructions.size() - 1].name, "rax");
-		out << "mov data(%rax), %rax" << std::endl;
-		out << "test %rax, %rax" << std::endl;
-		out << "jnz .L" << tExit->name << std::endl;
-		out << "jmp .L" << fExit->name << std::endl;
+		out << "\tmov data(%rax), %rax" << std::endl;
+		out << "\ttest %rax, %rax" << std::endl;
+		out << "\tjnz .L" << tExit->name << std::endl;
+		out << "\tjmp .L" << fExit->name << std::endl;
 	} else if (tExit)
-		out << "jmp .L" << tExit->name << std::endl;
+		out << "\tjmp .L" << tExit->name << std::endl;
 	else
-		out << "jmp .L" << scope->prefix << "_return" << std::endl;
+		out << "\tjmp .L" << scope->prefix << "_return" << std::endl;
 }

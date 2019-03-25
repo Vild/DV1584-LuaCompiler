@@ -60,13 +60,13 @@ struct Value {
 	Value(NIL nil) : type(Type::nil), str("NIL") {}
 	Value(std::string str) : type(Type::string), str(str) {}
 	Value(double number)
-			: type(Type::number), str(std::to_string(number)), number(number) {}
+	    : type(Type::number), str(std::to_string(number)), number(number) {}
 	Value(bool boolean)
-			: type(Type::boolean),
-				str(boolean ? "true" : "false"),
-				boolean(boolean) {}
+	    : type(Type::boolean),
+	      str(boolean ? "true" : "false"),
+	      boolean(boolean) {}
 	Value(Function* function)
-			: type(Type::function), str("Function"), function(function) {}
+	    : type(Type::function), str("Function"), function(function) {}
 	Value(Object* object) : type(Type::object), str("Object"), object(object) {}
 	Value(Array* array) : type(Type::array), str("Array"), array(array) {}
 	Value(Ref* ref) : type(Type::ref), str("Ref"), ref(ref) {}
@@ -79,6 +79,7 @@ struct GlobalScope {
 	std::vector<std::shared_ptr<Scope>> scopes;
 	std::map<std::string, BBlock*> bblocks;
 
+	GlobalScope();
 	~GlobalScope();
 
 	std::string addConstant(const Value& value);
@@ -88,18 +89,19 @@ struct GlobalScope {
 GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 
 // clang-format off
-#define enumMembers(o)																									\
-	/* Values (lhs) */																										\
-	o(constant) o(emptyTable) o(preMinus) o(not_) o(pound)								\
-																																				\
-	/* Math (lhs & rhs) */																								\
-	o(plus) o(minus) o(mul) o(div) o(pow) o(mod)													\
-																																				\
-	/* Compare (lhs & rhs) */																							\
-	o(less) o(lequal) o(greater) o(gequal) o(equal) o(notequal)						\
-																																				\
-	/* Misc */																														\
-	o(call) o(indexof) o(indexofRef) o(concatTable) o(functionArg) o(returnValue)
+#define enumMembers(o)																						\
+	/* Values (lhs) */																							\
+	o(constant) o(emptyTable) o(preMinus) o(not_) o(pound)					\
+																																	\
+	/* Math (lhs & rhs) */																					\
+	o(plus) o(minus) o(mul) o(div) o(pow) o(mod)										\
+																																	\
+	/* Compare (lhs & rhs) */																				\
+	o(less) o(lequal) o(greater) o(gequal) o(equal) o(notequal)			\
+																																	\
+	/* Misc */																											\
+	o(call) o(indexof) o(indexofRef) o(concatTable) o(functionArg)	\
+	o(returnValue)
 // clang-format off
 
 enum class Operation {

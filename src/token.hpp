@@ -37,9 +37,12 @@ public:
 
 class BinOPToken : public Token {
 public:
-#define enumMembers(o)                                                        \
-	o(UNK) o(plus) o(mul) o(div) o(pow) o(mod) o(dotdot) o(less) o(lessOrEqual) \
-			o(more) o(moreOrEqual) o(equal) o(notEqual) o(and_) o(or_) o(minus)
+// clang-format off
+#define enumMembers(o)																								\
+	o(UNK) o(plus) o(mul) o(div) o(pow) o(mod) o(dotdot)								\
+	o(less) o(lessOrEqual) o(more) o(moreOrEqual) o(equal) o(notEqual)	\
+	o(and_) o(or_) o(minus)
+	// clang-format on
 
 	enum class OP {
 #define o(x) x,
@@ -54,7 +57,7 @@ public:
 	virtual std::string toString() {
 		static const char* OP_Str[] = {
 #define o(x) "BinOpToken: " #x,
-				enumMembers(o)
+		    enumMembers(o)
 #undef o
 		};
 
@@ -80,7 +83,7 @@ public:
 	virtual std::string toString() {
 		static const char* OP_Str[] = {
 #define o(x) "UnOPToken: " #x,
-				enumMembers(o)
+		    enumMembers(o)
 #undef o
 		};
 
@@ -89,12 +92,14 @@ public:
 #undef enumMembers
 };
 
-#define tokens(o)                                                              \
-	o(Semicolon) o(Equals) o(Comma) o(Dot) o(Colon) o(SquareOpen) o(SquareClose) \
-			o(VariableList) o(ParenthesisOpen) o(ParenthesisClose) o(ListOpen)       \
-					o(ListClose) o(Do) o(End) o(While) o(Repeat) o(Until) o(If) o(Then)  \
-							o(ElseIf) o(Else) o(For) o(In) o(Function) o(Local) o(Return)    \
-									o(Break) o(Nil) o(True) o(False)
+// clang-format off
+#define tokens(o)																												\
+	o(Semicolon) o(Equals) o(Comma) o(Dot) o(Colon) o(SquareOpen)					\
+	o(SquareClose) o(VariableList) o(ParenthesisOpen) o(ParenthesisClose)	\
+	o(ListOpen) o(ListClose) o(Do) o(End) o(While) o(Repeat) o(Until)			\
+	o(If) o(Then) o(ElseIf) o(Else) o(For) o(In) o(Function) o(Local)			\
+	o(Return) o(Break) o(Nil) o(True) o(False)
+// clang-format on
 
 #define o(x)                          \
 	class x##Token : public Token {     \
@@ -105,7 +110,7 @@ tokens(o)
 #undef o
 #undef tokens
 
-		class QuotedToken : public Token {
+    class QuotedToken : public Token {
 public:
 	std::string value;
 	QuotedToken() : Token("QuotedToken"), value("") {}
@@ -129,10 +134,10 @@ class NumberToken : public Token {
 public:
 	double value;
 	NumberToken()
-			: Token("NumberToken"), value(std::numeric_limits<double>::quiet_NaN()) {}
+	    : Token("NumberToken"), value(std::numeric_limits<double>::quiet_NaN()) {}
 	NumberToken(double value) : Token("NumberToken"), value(value) {}
 	NumberToken(std::string value)
-			: Token("NumberToken"), value(atof(value.c_str())) {}
+	    : Token("NumberToken"), value(atof(value.c_str())) {}
 
 	virtual std::string toString() {
 		return std::string{"QuotedToken: "} + std::to_string(value);

@@ -2,6 +2,7 @@
 \#*\#
 *\#
 .*
+!.clang-format
 obj/
 /comp
 *.dot

@@ -18,7 +18,7 @@ int errors = 0;
 
 void yy::parser::error(const location_type& loc, const std::string& err) {
 	std::cerr << *loc.begin.filename << ":" << loc.begin.line << ":"
-						<< loc.begin.column;
+	          << loc.begin.column;
 	/*if (loc.begin.line == loc.end.line) std::cerr << " --> " <<
 	 * loc.end.column;*/
 	std::cerr << "\n" << err << std::endl;
@@ -57,12 +57,15 @@ void toDot(std::ostream& out, GlobalScope& gs) {
 		if (sName != name) {
 			sName = name;
 			out << name << "[label=\"" << name
-					<< "\",shape=ellipse,color=grey,style=filled];" << std::endl;
+			    << "\",shape=box,color=lightblue,style=filled];" << std::endl;
 
 			out << name << " -> " << name << "_variables_lbl;" << std::endl;
-			out << name << "_variables_lbl[label=\"Variables\",shape=ellipse,color=grey,style="
-					 "filled];"	<< std::endl;
-			out << name << "_variables_lbl -> "<< name << "_variables;" << std::endl;
+			out << name
+			    << "_variables_lbl[label=\"Variables\",shape=ellipse,color=grey,"
+			       "style="
+			       "filled];"
+			    << std::endl;
+			out << name << "_variables_lbl -> " << name << "_variables;" << std::endl;
 			out << name << "_variables[label=\"{";
 			bool first = true;
 			for (const std::string& str : block->scope->variables) {
@@ -74,16 +77,17 @@ void toDot(std::ostream& out, GlobalScope& gs) {
 			out << "}\"];" << std::endl;
 
 			out << name << " -> " << name << "_tmps_lbl;" << std::endl;
-			out << name << "_tmps_lbl[label=\"Temps\",shape=ellipse,color=grey,style="
-					 "filled];"	<< std::endl;
-			out << name << "_tmps_lbl -> "<< name << "_tmps;" << std::endl;
+			out << name
+			    << "_tmps_lbl[label=\"Temps\",shape=ellipse,color=grey,style=filled];"
+			    << std::endl;
+			out << name << "_tmps_lbl -> " << name << "_tmps;" << std::endl;
 			out << name << "_tmps[label=\"{";
 			first = true;
 			for (size_t i = 0; i < block->scope->tmpCounter; i++) {
 				if (!first)
 					out << "|";
 				first = false;
-				out << block->scope->prefix  + "_" + std::to_string(i);
+				out << block->scope->prefix + "_" + std::to_string(i);
 			}
 			out << "}\"];" << std::endl;
 
@@ -108,10 +112,12 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 		out << "\t.text" << std::endl;
 
 		auto& vars = block->scope->variables;
-		auto size = (vars.size() + block->scope->tmpCounter) * 16 /* Each variable is 16-bytes */;
-		out << ".global " << name << "Impl" << std::endl;
-		out << ".type " << name << "Impl" << ", %function" << std::endl;
-		out << name << "Impl: " << std::endl;
+		auto size = (vars.size() + block->scope->tmpCounter) *
+		            16 /* Each variable is 16-bytes */;
+		out << "\t.global " << name << "Impl" << std::endl;
+		out << "\t.type " << name << "Impl"
+		    << ", %function" << std::endl;
+		out << name << "Impl:" << std::endl;
 		out << "\tpushq %rbp" << std::endl;
 		out << "\tmov %rsp, %rbp" << std::endl;
 		if (size) {
@@ -120,15 +126,15 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 			for (size_t i = 0; i < vars.size(); i++) {
 				std::string variable = vars[i];
 				out << "\t// " << variable << " is at &(-"
-						<< (i + 1) * 16 /* The size of a variable */ << "(%rbp))"
-						<< std::endl;
+				    << (i + 1) * 16 /* The size of a variable */ << "(%rbp))"
+				    << std::endl;
 			}
 			for (size_t i = 0; i < block->scope->tmpCounter; i++) {
 				size_t idx = vars.size() + i;
-				std::string variable = block->scope->prefix  + "_" + std::to_string(i);
+				std::string variable = block->scope->prefix + "_" + std::to_string(i);
 				out << "\t// " << variable << " is at &(-"
-						<< (idx + 1) * 16 /* The size of a variable */ << "(%rbp))"
-						<< std::endl;
+				    << (idx + 1) * 16 /* The size of a variable */ << "(%rbp))"
+				    << std::endl;
 			}
 		}
 	};
@@ -140,18 +146,18 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 		out << "\txor %rdx, %rdx" << std::endl;
 		out << "\tleave" << std::endl;
 		out << "\tret" << std::endl;
-		out << "\n.size ., .-" << name << "Impl" << std::endl;
+		out << "\t.size ., .-" << name << "Impl" << std::endl;
 		out << std::endl;
 	};
 	visitAllBlocks(
-			gs, [&out, &sName, newFunc, endFunc](std::string name, BBlock* block) {
-				if (sName != name) {
-					endFunc(sName);
-					sName = name;
-					newFunc(sName, block);
-				}
-				block->toASM(out);
-			});
+	    gs, [&out, &sName, newFunc, endFunc](std::string name, BBlock* block) {
+		    if (sName != name) {
+			    endFunc(sName);
+			    sName = name;
+			    newFunc(sName, block);
+		    }
+		    block->toASM(out);
+	    });
 	endFunc(sName);
 }
 
@@ -194,8 +200,8 @@ int main(int argc, char** argv) {
 		toDot(out, gs);
 
 		out << "globals_lbl[label=\"Globals\",shape=ellipse,color=grey,style="
-					 "filled];"
-				<< std::endl;
+		       "filled];"
+		    << std::endl;
 		out << "globals_lbl -> globals;" << std::endl;
 		out << "globals[label=\"{";
 		bool first = true;
@@ -208,8 +214,8 @@ int main(int argc, char** argv) {
 		out << "}\"];" << std::endl;
 
 		out << "constants_lbl[label=\"Constants\",shape=ellipse,color=grey,style="
-					 "filled];"
-				<< std::endl;
+		       "filled];"
+		    << std::endl;
 		out << "constants_lbl -> constants;" << std::endl;
 		out << "constants[label=\"{";
 		first = true;
@@ -231,8 +237,8 @@ int main(int argc, char** argv) {
 		{
 			std::ifstream in("runtime/prologue.s");
 			std::copy(std::istreambuf_iterator<char>(in),
-								std::istreambuf_iterator<char>(),
-								std::ostreambuf_iterator<char>(out));
+			          std::istreambuf_iterator<char>(),
+			          std::ostreambuf_iterator<char>(out));
 		}
 
 		out << std::endl;
@@ -244,8 +250,8 @@ int main(int argc, char** argv) {
 		{
 			std::ifstream in("runtime/epilogue.s");
 			std::copy(std::istreambuf_iterator<char>(in),
-								std::istreambuf_iterator<char>(),
-								std::ostreambuf_iterator<char>(out));
+			          std::istreambuf_iterator<char>(),
+			          std::ostreambuf_iterator<char>(out));
 		}
 
 		out << std::endl;
@@ -253,16 +259,16 @@ int main(int argc, char** argv) {
 		{
 			std::ifstream in("runtime/builtin.s");
 			std::copy(std::istreambuf_iterator<char>(in),
-								std::istreambuf_iterator<char>(),
-								std::ostreambuf_iterator<char>(out));
+			          std::istreambuf_iterator<char>(),
+			          std::ostreambuf_iterator<char>(out));
 		}
 
 		out << std::endl;
 
-		out << ".section .rodata\n";
+		out << "\t.section .rodata\n";
 		for (const std::pair<std::string, Value>& kv : gs.constants) {
-			out << ".align 8" << std::endl;
-			out << kv.first << ": " << std::endl;
+			out << "\t.align 8" << std::endl;
+			out << kv.first << ":" << std::endl;
 			out << "\t.quad '" << (char)kv.second.type << "'" << std::endl;
 			switch (kv.second.type) {
 				case Value::Type::nil:
@@ -284,33 +290,33 @@ int main(int argc, char** argv) {
 			}
 			out << std::endl;
 		}
-
-		out << ".bss\n";
+		out << std::endl;
+		out << "\t.bss" << std::endl;
 		for (const std::string& str : gs.globals) {
-			out << ".align 8" << std::endl;
-			out << str << ": " << std::endl;
+			out << "\t.align 8" << std::endl;
+			out << str << ":" << std::endl;
 			out << "\t.quad 0" << std::endl;  // TYPE::UNK
 			out << "\t.quad 0" << std::endl;
 		}
 
 		// Need to be last
 		out << "// Define structure layout\n"
-					 "\t.struct 0\n"
-					 "type:\n"
-					 "\t.struct type + 8\n"
-					 "data:\n"
-					 "\t.struct 0\n"
-					 "obj_size:\n"
-					 "\t.struct obj_size + 8\n"
-					 "obj_data:\n"
-					 "\t.struct 0\n"
-					 "obj_data_name:\n"
-					 "\t.struct obj_data_name + 8\n"
-					 "obj_data_var:\n"
-					 "\t.struct obj_data_var + 8\n"
-					 "obj_data_sizeof:\n"
-					 "\t.struct 0"
-				<< std::endl;
+		       "\t.struct 0\n"
+		       "type:\n"
+		       "\t.struct type + 8\n"
+		       "data:\n"
+		       "\t.struct 0\n"
+		       "obj_size:\n"
+		       "\t.struct obj_size + 8\n"
+		       "obj_data:\n"
+		       "\t.struct 0\n"
+		       "obj_data_name:\n"
+		       "\t.struct obj_data_name + 8\n"
+		       "obj_data_var:\n"
+		       "\t.struct obj_data_var + 8\n"
+		       "obj_data_sizeof:\n"
+		       "\t.struct 0"
+		    << std::endl;
 	}
 
 	fclose(yyin);

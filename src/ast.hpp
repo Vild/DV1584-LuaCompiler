@@ -191,7 +191,7 @@ public:
 	VariableRefNode(){};
 	VariableRefNode(NodePtr variable) : Node{variable}, isToken(false) {}
 	VariableRefNode(ast::token::NameToken name)
-			: Node{}, name(name), isToken(true) {}
+	    : Node{}, name(name), isToken(true) {}
 
 	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
@@ -248,7 +248,7 @@ public:
 	virtual std::string toString() override {
 		int status;
 		std::string str =
-				abi::__cxa_demangle(typeid(*value.get()).name(), 0, 0, &status);
+		    abi::__cxa_demangle(typeid(*value.get()).name(), 0, 0, &status);
 
 		return Node::toString() + ": " + str;
 	}
@@ -262,10 +262,10 @@ public:
 
 	BinOPNode(){};
 	BinOPNode(NodePtr left, ast::token::BinOPToken op, NodePtr right)
-			: Node{left, right}, op(op) {}
+	    : Node{left, right}, op(op) {}
 	BinOPNode(NodePtr left, ast::token::MinusOPToken, NodePtr right)
-			: Node{left, right},
-				op(ast::token::BinOPToken(ast::token::BinOPToken::OP::minus)) {}
+	    : Node{left, right},
+	      op(ast::token::BinOPToken(ast::token::BinOPToken::OP::minus)) {}
 
 	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
@@ -282,8 +282,8 @@ public:
 	UnOPNode(){};
 	UnOPNode(ast::token::UnOPToken op, NodePtr right) : Node{right}, op(op) {}
 	UnOPNode(ast::token::MinusOPToken, NodePtr right)
-			: Node{right},
-				op(ast::token::UnOPToken{ast::token::UnOPToken::OP::minus}) {}
+	    : Node{right},
+	      op(ast::token::UnOPToken{ast::token::UnOPToken::OP::minus}) {}
 
 	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 
@@ -299,7 +299,7 @@ public:
 
 	FunctionCallNode(){};
 	FunctionCallNode(NodePtr function, NodePtr arguments)
-			: Node{function, arguments} {}
+	    : Node{function, arguments} {}
 
 	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
@@ -307,14 +307,14 @@ public:
 class FunctionNode : public Node {
 public:
 	typedef std::shared_ptr<ReturnNode> (*ExternalFunction_t)(
-			std::shared_ptr<ast::ExpressionListNode> arguments);
+	    std::shared_ptr<ast::ExpressionListNode> arguments);
 	NodePtr arguments() { return children[0]; }
 	NodePtr body() { return children[1]; }
 
 	FunctionNode(){};
 	FunctionNode(NodePtr arguments, NodePtr body) : Node{arguments, body} {}
 	FunctionNode(ExternalFunction_t externalFunction)
-			: Node{}, externalFunction(externalFunction) {}
+	    : Node{}, externalFunction(externalFunction) {}
 
 	ExternalFunction_t externalFunction = nullptr;
 
@@ -337,7 +337,7 @@ public:
 
 	ForLoopNode(){};
 	ForLoopNode(NodePtr counter, NodePtr from, NodePtr to, NodePtr body)
-			: Node{counter, from, to, body} {}
+	    : Node{counter, from, to, body} {}
 
 	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
@@ -350,7 +350,7 @@ public:
 
 	IfNode(){};
 	IfNode(NodePtr check, NodePtr body, NodePtr elseBody)
-			: Node{check, body, elseBody} {}
+	    : Node{check, body, elseBody} {}
 
 	virtual std::string convert(BBlock*& out, GlobalScope& gs) override;
 };
