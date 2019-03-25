@@ -62,7 +62,7 @@ ERRORSS = >>.build-errors || true
 $(OBJ)%.tab.cpp $(OBJ)%.tab.hpp $(OBJ)%.dot: $(SRC)%.yy
 	@$(call BEG,$(BLUE),"  -\> BISON","$@ \<-- $<")
 	@mkdir -p $(dir $@)
-	@$(BISON) -y --report=state --graph --warning=all --report=all --feature=all -d -o $@ $^ $(ERRORS)
+	@$(BISON) --report=state --graph --warning=all --report=all --feature=all -d -o $@ $^ $(ERRORS)
 	@$(call END,$(BLUE),"  -\> BISON","$@ \<-- $<")
 
 $(OBJ)%.yy.cpp: $(SRC)%.ll

@@ -154,9 +154,80 @@ powOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	retq
 	.size ., .-powOP
 
+	.global modOP
+	.type modOP, %function
+modOP: // arg1 = rdi, arg2 = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	// Verify %rdi & %rsi
+	call verifyNumber
+
+	// Algorithm: value - truncate(value/modulus)*modulus;
+
+	movsd data(%rdi), %xmm0
+	movsd data(%rsi), %xmm1
+
+	// xmm0 = value/modulus
+	divsd %xmm1, %xmm0
+
+	// xmm0 = truncate(xmm9)
+	cvttsd2si %xmm0, %rax
+	cvtsi2sd %rax, %xmm0
+
+	// xmm0 = xmm0 * modulus
+	mulsd %xmm1, %xmm0
+
+	// xmm1 = value
+	movsd data(%rdi), %xmm1
+
+	// xmm1 = xmm1 - xmm0
+	subsd %xmm0, %xmm1
+
+	// Save the result
+	movsd %xmm1, data(%rdx)
+	movq $'n', type(%rdx)
+	leave
+	retq
+	.size ., .-modOP
+
+	.global lessOP
+	.type lessOP, %function
+lessOP: // arg1 = rdi, arg2 = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	// Swap rdi and rsi
+	mov %rdi, %rax
+	mov %rsi, %rdi
+	mov %rax, %rsi
+
+	call greaterOP
+
+	leave
+	retq
+	.size ., .-lessOP
+
 	.global lequalOP
 	.type lequalOP, %function
 lequalOP: // arg1 = rdi, arg2 = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	// Swap rdi and rsi
+	mov %rdi, %rax
+	mov %rsi, %rdi
+	mov %rax, %rsi
+
+	call gequalOP
+
+	leave
+	retq
+	.size ., .-lequalOP
+
+	.global greaterOP
+	.type greaterOP, %function
+greaterOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	push %rbp
 	mov %rsp, %rbp
 
@@ -167,16 +238,98 @@ lequalOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	movsd data(%rdi), %xmm0
 	movsd data(%rsi), %xmm1
 
-	cmplesd %xmm1, %xmm0
-	// if xmm0 is all 1's, then true, if is all 0's then false
-	cvtsd2si %xmm0, %rax
+	comisd %xmm1, %xmm0
+
+	// arg1 > arg2 (set byte if above)
+	seta %al
+
+	// Expand a byte to a whole register
+	movzbl %al, %rax
+
+	// Save the result
+	movq %rax, data(%rdx)
+	movq $'b', type(%rdx)
+
+	leave
+	retq
+	.size ., .-greaterOP
+
+	.global gequalOP
+	.type gequalOP, %function
+gequalOP: // arg1 = rdi, arg2 = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	// Verify %rdi & %rsi
+	call verifyNumber
+
+	// Extract a whole number as the exponent
+	movsd data(%rdi), %xmm0
+	movsd data(%rsi), %xmm1
+
+	comisd %xmm1, %xmm0
+
+	// arg1 >= arg2 (set byte if above or equal)
+	setae %al
+
+	// Expand a byte to a whole register
+	movzbl %al, %rax
+
+	// Save the result
+	movq %rax, data(%rdx)
+	movq $'b', type(%rdx)
+
+	leave
+	retq
+	.size ., .-gequalOP
+
+	.global equalOP
+	.type equalOP, %function
+equalOP: // arg1 = rdi, arg2 = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	// Verify %rdi & %rsi
+	call verifyNumber
+
+	// Extract a whole number as the exponent
+	movsd data(%rdi), %xmm0
+	movsd data(%rsi), %xmm1
+
+	ucomisd %xmm1, %xmm0
+
+	// a == b (set byte if equal)
+	sete %al
+
+	// Expand a byte to a whole register
+	movzbl %al, %rax
 
 	// Save the result
 	movq %rax, data(%rdx)
 	movq $'b', type(%rdx)
 	leave
 	retq
-	.size ., .-lequalOP
+	.size ., .-equalOP
+
+	.global notequalOP
+	.type notequalOP, %function
+notequalOP: // arg1 = rdi, arg2 = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	call equalOP
+
+	// Invert result
+	movq data(%rdx), %rax
+
+	// Flip the bit
+	xorq $0x1, %rax
+
+	movq %rax, data(%rdx)
+
+	leave
+	retq
+	.size ., .-notequalOP
 
 	.global callOP
 	.type callOP, %function
@@ -207,12 +360,12 @@ indexofOP: // table = rdi, index = rsi, output = rdx
 	// TODO: implement array and array indexing
 	mov type(%rdi), %rax
 	cmpq $'o', %rax
-	je .indexObject
+	je .LindexObject
 	cmpq $'a', %rax
-	je .indexArray
+	je .LindexArray
 	mov $argIsNotObjectOrArray, %rdi
 	call runtimeError
-.indexObject:
+.LindexObject:
 	//call *data(%rdi)
 
 	mov type(%rsi), %rax
@@ -259,11 +412,11 @@ indexofOP: // table = rdi, index = rsi, output = rdx
 	movq data(%rdi), %rax
 	movq %rax, data(%rdx)
 
-	jmp .return
-.indexArray:
+	jmp .Lreturn
+.LindexArray:
 	mov $argIsNotObjectOrArray, %rdi
 	call runtimeError
-.return:
+.Lreturn:
 	leave
 	retq
 	.size ., .-indexofOP

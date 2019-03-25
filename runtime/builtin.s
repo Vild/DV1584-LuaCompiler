@@ -37,26 +37,26 @@ __builtin_io_write: // thisFunction = rdi, text = rsi, output = rdx
 
 	// %rdi will be set to the string
 	cmpq $'N', %rax
-	je .printNil
+	je .LprintNil
 	cmpq $'s', %rax
-	je .printString
+	je .LprintString
 	cmpq $'n', %rax
-	je .printNumber
+	je .LprintNumber
 	cmpq $'b', %rax
-	je .printBool
+	je .LprintBool
 
 	mov $unknownType, %rdi
-	jmp .printIt
+	jmp .LprintIt
 
-.printNil:
+.LprintNil:
 	mov $nil, %rdi
-	jmp .printIt
+	jmp .LprintIt
 
-.printString:
+.LprintString:
 	mov data(%rsi), %rdi
-	jmp .printIt
+	jmp .LprintIt
 
-.printNumber:
+.LprintNumber:
 	// The idea behind this code is to do (int)(val * 10), and then just insert a
 	// '.' before the last character. Probably not the best way of doing it, but
 	// it is the easiest way, and it will pass the test-cases.
@@ -70,9 +70,9 @@ __builtin_io_write: // thisFunction = rdi, text = rsi, output = rdx
 	call intToStr
 	mov %rax, %rdi
 
-	jmp .printIt
+	jmp .LprintIt
 
-.printBool:
+.LprintBool:
 	mov data(%rsi), %rax
 	test %rax, %rax
 	jz 1f
@@ -81,9 +81,9 @@ __builtin_io_write: // thisFunction = rdi, text = rsi, output = rdx
 1:
 	mov $false, %rdi
 2:
-	jmp .printIt
+	jmp .LprintIt
 
-.printIt:
+.LprintIt:
 	mov %rdi, -8(%rbp)
 	call strlen
 
@@ -123,11 +123,11 @@ __builtin_io_read: // thisFunction = rdi, readmode = rsi, output = rdx
 	mov $c__number, %rdi
 	call strcmp
 	test %rax, %rax
-	jnz .readNumber
+	jnz .LreadNumber
 
 	mov $unknownReadMode, %rdi
 	call runtimeError
-.readNumber:
+.LreadNumber:
 	mov $__NR_read, %rax
 	mov $0, %rdi
 	mov $read_buffer, %rsi
@@ -141,7 +141,7 @@ __builtin_io_read: // thisFunction = rdi, readmode = rsi, output = rdx
 	xor %r8, %r8
 	inc %r8
 	cmpb $'-', (%rdi)
-	jne .parseStart
+	jne .LparseStart
 	mov $-1, %r8
 	inc %rdi
 
@@ -152,20 +152,20 @@ __builtin_io_read: // thisFunction = rdi, readmode = rsi, output = rdx
 	// 2. If the character is not a number, break
 	// 3. Do rax = rax * 10 + number
 	// 4. rsi = rsi * 10
-.parseStart:
+.LparseStart:
 	cmpb $'.', (%rdi)
 	jne 2f
 
 	test %rsi, %rsi
-	jnz .loopDone
+	jnz .LloopDone
 
 	inc %rsi
-	jmp .parseContinue
+	jmp .LparseContinue
 2:
 	cmpb $'0', (%rdi)
-	jl .loopDone
+	jl .LloopDone
 	cmpb $'9', (%rdi)
-	jg .loopDone
+	jg .LloopDone
 
 	// Here we know it is a valid number
 
@@ -179,10 +179,10 @@ __builtin_io_read: // thisFunction = rdi, readmode = rsi, output = rdx
 	add %rdx, %rax
 
 	imul $10, %rsi
-.parseContinue:
+.LparseContinue:
 	inc %rdi
-	jmp .parseStart
-.loopDone:
+	jmp .LparseStart
+.LloopDone:
 	// rsi = max(rsi, 1)
 	test %rsi, %rsi
 	jnz 1f

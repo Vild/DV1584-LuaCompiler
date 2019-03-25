@@ -241,7 +241,7 @@ void BBlock::toDot(std::ostream& out) const {
 }
 
 void BBlock::toASM(std::ostream& out) const {
-	out << "." << name << ":" << std::endl;
+	out << ".L" << name << ":" << std::endl;
 
 	for (size_t i = 0; i < instructions.size(); i++)
 		instructions[i].toASM(out, this);
@@ -251,8 +251,10 @@ void BBlock::toASM(std::ostream& out) const {
 		pushVar(out, this, instructions[instructions.size() - 1].name, "rax");
 		out << "mov data(%rax), %rax" << std::endl;
 		out << "test %rax, %rax" << std::endl;
-		out << "jnz ." << tExit->name << std::endl;
-		out << "jmp ." << fExit->name << std::endl;
+		out << "jnz .L" << tExit->name << std::endl;
+		out << "jmp .L" << fExit->name << std::endl;
 	} else if (tExit)
-		out << "jmp ." << tExit->name << std::endl;
+		out << "jmp .L" << tExit->name << std::endl;
+	else
+		out << "jmp .L" << scope->prefix << "_return" << std::endl;
 }

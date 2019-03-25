@@ -90,6 +90,7 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 	auto endFunc = [&out](std::string name) {
 		if (!name.size())
 			return;
+		out << ".L" << name << "_return:" << std::endl;
 		out << "\tleave" << std::endl;
 		out << "\tret" << std::endl;
 		out << "\n.size ., .-" << name << std::endl;
