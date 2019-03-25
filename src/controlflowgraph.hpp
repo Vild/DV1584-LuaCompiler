@@ -90,7 +90,7 @@ GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 // clang-format off
 #define enumMembers(o)																									\
 	/* Values (lhs) */																										\
-	o(constant) o(emptyTable) o(preMinus) o(not_)  o(pound)								\
+	o(constant) o(emptyTable) o(preMinus) o(not_) o(pound)								\
 																																				\
 	/* Math (lhs & rhs) */																								\
 	o(plus) o(minus) o(mul) o(div) o(pow) o(mod)													\
@@ -99,7 +99,7 @@ GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 	o(less) o(lequal) o(greater) o(gequal) o(equal) o(notequal)						\
 																																				\
 	/* Misc */																														\
-	o(call) o(indexof) o(indexofRef) o(concatTable) o(functionArg)
+	o(call) o(indexof) o(indexofRef) o(concatTable) o(functionArg) o(returnValue)
 // clang-format off
 
 enum class Operation {

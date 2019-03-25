@@ -10,13 +10,13 @@ verifyNumber: // arg1 = rdi
 	movq type(%rdi), %rax
 	cmpq $'n', %rax
 	je 1f
-	mov $argIsNotNumber, %rdi
+	mov $argIsNotNumber, %r8
 	call runtimeError
 1:
 	movq type(%rsi), %rax
 	cmpq $'n', %rax
 	je 2f
-	mov $argIsNotNumber, %rdi
+	mov $argIsNotNumber, %r8
 	call runtimeError
 2:
 	xor %rax, %rax
@@ -336,14 +336,21 @@ notequalOP: // arg1 = rdi, arg2 = rsi, output = rdx
 callOP: // function = rdi, arg1 = rsi, output = rdx
 	push %rbp
 	mov %rsp, %rbp
+	sub $8, %rsp
+	and $-16, %rsp
+	movq %rdx, -8(%rbp)
 
 	mov type(%rdi), %rax
 	cmpq $'f', %rax
 	je 1f
-	mov $argIsNotFunction, %rdi
+	mov $argIsNotFunction, %r8
 	call runtimeError
 1:
 	call *data(%rdi)
+
+	movq -8(%rbp), %rdi
+	movq %rax, type(%rdi)
+	movq %rdx, data(%rdi)
 
 	leave
 	retq
@@ -363,7 +370,7 @@ indexofOP: // table = rdi, index = rsi, output = rdx
 	je .LindexObject
 	cmpq $'a', %rax
 	je .LindexArray
-	mov $argIsNotObjectOrArray, %rdi
+	mov $argIsNotObjectOrArray, %r8
 	call runtimeError
 .LindexObject:
 	//call *data(%rdi)
@@ -371,7 +378,7 @@ indexofOP: // table = rdi, index = rsi, output = rdx
 	mov type(%rsi), %rax
 	cmpq $'s', %rax
 	je 1f
-	mov $indexIsNotString, %rdi
+	mov $indexIsNotString, %r8
 	call runtimeError
 1:
 	mov data(%rsi), %rsi
@@ -402,7 +409,7 @@ indexofOP: // table = rdi, index = rsi, output = rdx
 	lea obj_data_sizeof(%rdi), %rdi
 	loop 1b
 
-	mov $objectMemberMissing, %rdi
+	mov $objectMemberMissing, %r8
 	call runtimeError
 2:
 	mov obj_data_var(%rdi), %rdi
@@ -414,7 +421,7 @@ indexofOP: // table = rdi, index = rsi, output = rdx
 
 	jmp .Lreturn
 .LindexArray:
-	mov $argIsNotObjectOrArray, %rdi
+	mov $argIsNotObjectOrArray, %r8
 	call runtimeError
 .Lreturn:
 	leave
@@ -499,13 +506,19 @@ intToStr:	// rdi = number
 
 	.global runtimeError
 	.type runtimeError, %function
-runtimeError: // msg = rdi
+runtimeError: // msg = r8
 	push %rbp
 	mov %rsp, %rbp
-	sub $8, %rsp
+	sub $32, %rsp
 	and $-16, %rsp
 
-	mov %rdi, -8(%rbp)
+	mov %r8, -8(%rbp)
+	mov %rdi, -16(%rbp)
+	mov %rsi, -24(%rbp)
+	mov %rdx, -32(%rbp)
+
+	mov %r8, %rdi
+
 	call strlen
 
 	// Length
@@ -513,13 +526,15 @@ runtimeError: // msg = rdi
 	// string
 	mov -8(%rbp), %rsi
 
-
 	// sys number
   mov $__NR_write, %rax
 	// stdout
   mov $1, %rdi
   syscall
 
+	mov -16(%rbp), %rdi
+	mov -24(%rbp), %rsi
+	mov -32(%rbp), %rdx
 	int $3
 
 	// Exit with errorcode 1

@@ -115,7 +115,7 @@ __builtin_io_read: // thisFunction = rdi, readmode = rsi, output = rdx
 	movq type(%rsi), %rax
 	cmpq $'s', %rax
 	je 1f
-	mov $argIsNotString, %rdi
+	mov $argIsNotString, %r8
 	call runtimeError
 1:
 	mov data(%rsi), %rsi
@@ -125,7 +125,7 @@ __builtin_io_read: // thisFunction = rdi, readmode = rsi, output = rdx
 	test %rax, %rax
 	jnz .LreadNumber
 
-	mov $unknownReadMode, %rdi
+	mov $unknownReadMode, %r8
 	call runtimeError
 .LreadNumber:
 	mov $__NR_read, %rax
@@ -248,7 +248,5 @@ read_buffer:
 read_buffer_end:
 	// The '\0' at the end of the string!
 	.space 1
-	// </EPILOGUE>
-
 
 	// </BUILTIN>

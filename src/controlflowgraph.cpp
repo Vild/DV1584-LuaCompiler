@@ -120,6 +120,19 @@ void ThreeAddr::toASM(std::ostream& out, const BBlock* block) const {
 	out << "\t// Expand: " << name << " := " << lhs << " " << op << " " << rhs
 			<< std::endl;
 #define _(...) out << "\t" << __VA_ARGS__ << std::endl;
+	if (op == Operation::functionArg) {
+		pushVar(out, block, name, "rdx");  // Return place
+		// The function will already have the input argument in %rsi so this will work
+		_("call copyOP");
+		return;
+	} else if (op == Operation::returnValue) {
+		pushVar(out, block, lhs, "rdi");
+		_("mov type(%rdi), %rax");
+		_("mov data(%rdi), %rdx");
+		_("leave");
+		_("ret");
+		return;
+	}
 	pushVar(out, block, lhs, "rdi");   // Arg 1
 	pushVar(out, block, rhs, "rsi");   // Arg 2
 	pushVar(out, block, name, "rdx");  // Return place
@@ -196,10 +209,8 @@ void ThreeAddr::toASM(std::ostream& out, const BBlock* block) const {
 			_("call concatTableOP");
 			break;
 		case Operation::functionArg:
-			// TODO move data from rsi to stack and assign local variable
-			_("call functionArgOP");
-			break;
-
+			expect(0, "Should never reach this");
+			break;			
 		default:
 			out << "\t// Unknown op = '" << op << "'!" << std::endl;
 			std::cout << "\x1b[1;31mUnknown op = '" << op << "'!\x1b[0m" << std::endl;

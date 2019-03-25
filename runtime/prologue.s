@@ -19,8 +19,14 @@ _start:
 main:
 	pushq %rbp
 	mov %rsp, %rbp
-	call __main
-	xor %rax, %rax
+	sub $16, %rsp
+	and $-16, %rsp
+
+	mov $_cN_NIL, %rsi
+	mov $__main, %rdi
+	lea -16(%rbp), %rdx
+	call callOP
+
 	leave
 	ret
 	.size ., .-main

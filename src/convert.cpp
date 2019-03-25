@@ -68,7 +68,8 @@ std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 		std::string l = left[i]->convert(out, gs);
 		out->instructions.push_back(
 				ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
-		gs.addGlobal(l);
+		if (l[0] != '_')
+			gs.addGlobal(l);
 	}
 	indexOfRef = oldIndexOfRef;
 	return "";
@@ -168,9 +169,17 @@ std::string ast::FunctionNode::convert(BBlock*& out, GlobalScope& gs) {
 	// TODO: Make better
 	auto& children = arguments()->children;
 	for (size_t i = 0; i < children.size(); i++) {
-		auto val = std::to_string(i);
-		funcBlock->instructions.push_back(ThreeAddr(
-				children[i]->convert(funcBlock, gs), Operation::functionArg, val, val));
+		auto name = children[i]->convert(funcBlock, gs);
+		funcBlock->scope->variables.push_back(name);
+		auto val = "0";
+		switch (i) {
+		case 0:
+			funcBlock->instructions.push_back(ThreeAddr(name, Operation::functionArg, val, val));
+			break;
+		default:
+			expect(0, "A function can not be defined to take more than one argument!");
+			break;
+		}
 	}
 
 	body()->convert(funcBlock, gs);
@@ -201,6 +210,8 @@ std::string ast::ReturnNode::convert(BBlock*& out, GlobalScope& gs) {
 	std::string tmp = out->scope->makeName();
 	returnBlock->instructions.push_back(
 			ThreeAddr(tmp, Operation::constant, val, val));
+	returnBlock->instructions.push_back(
+			ThreeAddr("rax", Operation::returnValue, tmp, tmp));
 
 	out = returnBlock;
 

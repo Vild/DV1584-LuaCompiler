@@ -58,6 +58,21 @@ void toDot(std::ostream& out, GlobalScope& gs) {
 			sName = name;
 			out << name << "[label=\"" << name
 					<< "\",shape=ellipse,color=grey,style=filled];" << std::endl;
+
+			out << name << " -> " << name << "_variables_lbl;" << std::endl;
+			out << name << "_variables_lbl[label=\"Variables\",shape=ellipse,color=grey,style="
+					 "filled];"	<< std::endl;
+			out << name << "_variables_lbl -> "<< name << "_variables;" << std::endl;
+			out << name << "_variables[label=\"{";
+			bool first = true;
+			for (const std::string& str : block->scope->variables) {
+				if (!first)
+					out << "|";
+				first = false;
+				out << str;
+			}
+			out << "}\"];" << std::endl;
+
 			out << name << " -> " << block->name << std::endl;
 		}
 		block->toDot(out);
@@ -69,11 +84,20 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 	auto newFunc = [&out](std::string name, BBlock* block) {
 		if (!name.size())
 			return;
+
+		out << "\t.section .rodata" << std::endl;
+		out << "\t.align 8" << std::endl;
+		out << name << ":" << std::endl;
+		out << "\t.quad 'f'" << std::endl;
+		out << "\t.quad " << name << "Impl" << std::endl;
+		out << std::endl;
+		out << "\t.text" << std::endl;
+
 		auto& vars = block->scope->variables;
 		auto size = vars.size() * 16 /* Each variable is 16-bytes */;
-		out << ".global " << name << std::endl;
-		out << ".type " << name << ", %function" << std::endl;
-		out << name << ": " << std::endl;
+		out << ".global " << name << "Impl" << std::endl;
+		out << ".type " << name << "Impl" << ", %function" << std::endl;
+		out << name << "Impl: " << std::endl;
 		out << "\tpushq %rbp" << std::endl;
 		out << "\tmov %rsp, %rbp" << std::endl;
 		if (size) {
@@ -91,9 +115,11 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 		if (!name.size())
 			return;
 		out << ".L" << name << "_return:" << std::endl;
+		out << "\tmovq $'N', %rax" << std::endl;
+		out << "\txor %rdx, %rdx" << std::endl;
 		out << "\tleave" << std::endl;
 		out << "\tret" << std::endl;
-		out << "\n.size ., .-" << name << std::endl;
+		out << "\n.size ., .-" << name << "Impl" << std::endl;
 		out << std::endl;
 	};
 	visitAllBlocks(
