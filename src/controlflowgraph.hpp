@@ -15,7 +15,7 @@ class BBlock;
 
 struct Scope {
 	std::string prefix;
-	int tmpCounter = 0;
+	size_t tmpCounter = 0;
 	std::vector<std::string> variables;
 
 	Scope(std::string prefix) : prefix(prefix) {}

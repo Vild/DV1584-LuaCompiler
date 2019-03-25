@@ -73,6 +73,20 @@ void toDot(std::ostream& out, GlobalScope& gs) {
 			}
 			out << "}\"];" << std::endl;
 
+			out << name << " -> " << name << "_tmps_lbl;" << std::endl;
+			out << name << "_tmps_lbl[label=\"Temps\",shape=ellipse,color=grey,style="
+					 "filled];"	<< std::endl;
+			out << name << "_tmps_lbl -> "<< name << "_tmps;" << std::endl;
+			out << name << "_tmps[label=\"{";
+			first = true;
+			for (size_t i = 0; i < block->scope->tmpCounter; i++) {
+				if (!first)
+					out << "|";
+				first = false;
+				out << block->scope->prefix  + "_" + std::to_string(i);
+			}
+			out << "}\"];" << std::endl;
+
 			out << name << " -> " << block->name << std::endl;
 		}
 		block->toDot(out);
@@ -94,7 +108,7 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 		out << "\t.text" << std::endl;
 
 		auto& vars = block->scope->variables;
-		auto size = vars.size() * 16 /* Each variable is 16-bytes */;
+		auto size = (vars.size() + block->scope->tmpCounter) * 16 /* Each variable is 16-bytes */;
 		out << ".global " << name << "Impl" << std::endl;
 		out << ".type " << name << "Impl" << ", %function" << std::endl;
 		out << name << "Impl: " << std::endl;
@@ -107,6 +121,13 @@ void toASM(std::ostream& out, GlobalScope& gs) {
 				std::string variable = vars[i];
 				out << "\t// " << variable << " is at &(-"
 						<< (i + 1) * 16 /* The size of a variable */ << "(%rbp))"
+						<< std::endl;
+			}
+			for (size_t i = 0; i < block->scope->tmpCounter; i++) {
+				size_t idx = vars.size() + i;
+				std::string variable = block->scope->prefix  + "_" + std::to_string(i);
+				out << "\t// " << variable << " is at &(-"
+						<< (idx + 1) * 16 /* The size of a variable */ << "(%rbp))"
 						<< std::endl;
 			}
 		}
@@ -270,14 +291,6 @@ int main(int argc, char** argv) {
 			out << str << ": " << std::endl;
 			out << "\t.quad 0" << std::endl;  // TYPE::UNK
 			out << "\t.quad 0" << std::endl;
-		}
-		for (auto scope : gs.scopes) {
-			for (int i = 0; i < scope->tmpCounter; i++) {
-				out << ".align 8" << std::endl;
-				out << scope->prefix << "_" << i << ": " << std::endl;
-				out << "\t.quad 0" << std::endl;  // TYPE::UNK
-				out << "\t.quad 0" << std::endl;
-			}
 		}
 
 		// Need to be last

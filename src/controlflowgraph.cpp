@@ -6,7 +6,9 @@
 #include <controlflowgraph.hpp>
 #include <expect.hpp>
 #include <iostream>
+#include <cstring>
 #include <set>
+#include <sstream>
 #include <token.hpp>
 
 // From main.cpp
@@ -107,12 +109,19 @@ static void pushVar(std::ostream& out,
 	auto& vars = block->scope->variables;
 	ptrdiff_t pos =
 			std::distance(vars.begin(), std::find(vars.begin(), vars.end(), name));
-	if (pos >= (ptrdiff_t)vars.size()) {  // not a local variable
-		out << "\t"
-				<< "movq $" << name << ", \t%" << reg << std::endl;
-	} else {
+
+	if (pos < (ptrdiff_t)vars.size()) {  // a local variable
 		out << "\t"
 				<< "lea -" << (pos + 1) * 16 << "(%rbp), \t%" << reg << std::endl;
+	} else if (strncmp(name.c_str(), block->scope->prefix.c_str(), block->scope->prefix.size()) == 0) {
+		std::istringstream iss(name.substr(block->scope->prefix.size()+1));
+		size_t idx;
+		iss >> idx;
+		out << "\t"
+				<< "lea -" << (vars.size() + idx + 1) * 16 << "(%rbp), \t%" << reg << std::endl;
+	} else {
+		out << "\t"
+				<< "movq $" << name << ", \t%" << reg << std::endl;
 	}
 }
 
