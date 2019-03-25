@@ -105,7 +105,7 @@ __builtin_io_write: // thisFunction = rdi, text = rsi, output = rdx
 
 	.global __builtin_io_read
 	.type __builtin_io_read, %function
-__builtin_io_read: // thisFunction = rdi, readmode = rsi, output = rdx
+__builtin_io_read: // thisFunction = rdi, readmode = rsi
 	push %rbp
 	mov %rsp, %rbp
 	sub $16, %rsp
@@ -194,9 +194,9 @@ __builtin_io_read: // thisFunction = rdi, readmode = rsi, output = rdx
 	cvtsi2sd %rsi, %xmm1
 	divsd %xmm1, %xmm0
 
+	movq $'n', %rax
+	movsd %xmm0, -8(%rbp)
 	mov -8(%rbp), %rdx
-	movq $'n', type(%rdx)
-	movsd %xmm0, data(%rdx)
 
 	leave
 	retq

@@ -40,8 +40,17 @@ $(OBJ)tests/%.svg: tests/%.lua $(INT)
 	@$(LUA) $< > $(@:.svg=.lua-output) <$(<:.lua=-input.txt) $(ERRORS);
 	@$(call END,$(BLUE),"  -\>","Running LUA interpreter...");
 	@$(call BEG,$(BLUE),"  -\>","Running $(ASS2) interpreter...");
-	@$(ASS2) $< --parse-tree $(@:.svg=.dot) <$(<:.lua=-input.txt) > $(@:.svg=.int-output) $(ERRORS);
+	@$(ASS2) $< --parse-tree $(@:.svg=.dot) $(ERRORS);
 	@$(call END,$(BLUE),"  -\>","Running $(ASS2) interpreter...");
+	@$(call BEG,$(BLUE),"  -\>","Compiling test...");
+	@as target-raw.s -o target.o $(ERRORS);
+	@$(call END,$(BLUE),"  -\>","Compiling test...");
+	@$(call BEG,$(BLUE),"  -\>","Linking test...");
+	@ld target.o $(ERRORS);
+	@$(call END,$(BLUE),"  -\>","Linking test...");
+	@$(call BEG,$(BLUE),"  -\>","Running test...");
+	@./a.out <$(<:.lua=-input.txt) > $(@:.svg=.int-output) $(ERRORS);
+	@$(call END,$(BLUE),"  -\>","Running test...");
 	@#$(call BEG,$(BLUE),"  -\>","Generating dot-graph...");
 	@#$(DOT) -tsvg -O$@ $(@:.dot=.txt) $(ERRORS);
 	@#$(call END,$(BLUE),"  -\>","Generating dot-graph...");
