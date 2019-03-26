@@ -4,6 +4,7 @@
 #include <ast.hpp>
 #include <expect.hpp>
 #include <string>
+#include <cstring>
 
 #define debug() Debug debug(this->toString().c_str())
 
@@ -11,13 +12,15 @@ static int indent = 0;
 struct Debug {
 	Debug(const char* func) {
 		// scope.print();
-		/*indent++;
+		#if 0
+		indent++;
 		for (int i = 0; i < indent; i++)
 		  if (!i)
 		    std::cout << "| ";
 		  else
 		    std::cout << "  ";
-		std::cout << func << std::endl;*/
+		std::cout << func << std::endl;
+		#endif
 	}
 	~Debug() { indent--; }
 };
@@ -50,6 +53,7 @@ std::string ast::NilNode::convert(BBlock*& out, GlobalScope& gs) {
 }
 
 static bool indexOfRef = false;  // TODO: Remove this global
+static bool wasIndexOfRef = false;
 std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 
@@ -66,8 +70,14 @@ std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 		// TODO: Add check if indexof, then rewire to indexofRef? or use
 		// indexOfAssign? or something
 		std::string l = left[i]->convert(out, gs);
-		out->instructions.push_back(
-		    ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
+		if (wasIndexOfRef) {
+			std::string tmp2 = out->scope->makeName();
+			out->instructions.push_back(
+				ThreeAddr(tmp2, Operation::setValue, l, tmpVars[i]));
+		} else
+			out->instructions.push_back(
+			ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
+		wasIndexOfRef = false;
 		if (l[0] != '_')
 			gs.addGlobal(l);
 	}
@@ -192,10 +202,17 @@ std::string ast::IndexOfNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 	std::string l = object()->convert(out, gs);
 	std::string r = index()->convert(out, gs);
-	std::string rTmp = gs.addConstant(Value{r});
+
+	// If it is not a variable
+	if (std::find(gs.globals.begin(), gs.globals.end(), r) == gs.globals.end() &&
+			std::find(out->scope->variables.begin(), out->scope->variables.end(), r) == out->scope->variables.end() &&
+		strncmp(r.c_str(), out->scope->prefix.c_str(), out->scope->prefix.size()) != 0)
+		r = gs.addConstant(Value{r});
+
 	std::string tmp = out->scope->makeName();
 	out->instructions.push_back(ThreeAddr(
-	    tmp, indexOfRef ? Operation::indexofRef : Operation::indexof, l, rTmp));
+	    tmp, indexOfRef ? Operation::indexofRef : Operation::indexof, l, r));
+	wasIndexOfRef = indexOfRef;
 	return tmp;
 }
 std::string ast::LocalAssignValueNode::convert(BBlock*& out, GlobalScope& gs) {
@@ -221,13 +238,18 @@ std::string ast::ReturnNode::convert(BBlock*& out, GlobalScope& gs) {
 }
 std::string ast::TableNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	std::string tbl = out->scope->makeName();
-	std::string len = std::to_string(children.size());
-	out->instructions.push_back(ThreeAddr(tbl, Operation::emptyTable, len, len));
+
+	std::string tbl = gs.addData(Value{Array{children.size()}});
+
+	double index = 1; // Because LUA is a special language
 	for (auto& child : children) {
 		auto name = child->convert(out, gs);
+		std::string tmp = out->scope->makeName();
+
+		out->instructions.push_back(ThreeAddr(tmp, Operation::indexofRef, tbl, gs.addConstant(Value{index++})));
+		std::string tmp2 = out->scope->makeName();
 		out->instructions.push_back(
-		    ThreeAddr(tbl, Operation::concatTable, tbl, name));
+			ThreeAddr(tmp2, Operation::setValue, tmp, name));
 	}
 	return tbl;
 }
@@ -263,21 +285,7 @@ std::string ast::VariableListNode::convert(BBlock*& out, GlobalScope& gs) {
 }
 std::string ast::ExpressionListNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-
-	if (children.size() == 1)
-		return children[0]->convert(out, gs);
-
-	// In test6 io.write takes two arguments so this is needed, sadly :c
-	// aka THE INSTRUCTIONS ARE WRONG!
-	std::string tbl = out->scope->makeName();
-	std::string len = std::to_string(children.size());
-	out->instructions.push_back(ThreeAddr(tbl, Operation::emptyTable, len, len));
-	for (auto& child : children) {
-		auto name = child->convert(out, gs);
-		out->instructions.push_back(
-		    ThreeAddr(tbl, Operation::concatTable, tbl, name));
-	}
-	return tbl;
+	return children[0]->convert(out, gs);
 }
 std::string ast::NameListNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
@@ -285,7 +293,9 @@ std::string ast::NameListNode::convert(BBlock*& out, GlobalScope& gs) {
 }
 std::string ast::VariableRefNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
-	return isToken ? name.value : children[0]->convert(out, gs);
+	if (isToken)
+		return name.value; //gs.addConstant(Value{name.value});
+	return children[0]->convert(out, gs);
 }
 std::string ast::ForLoopNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
@@ -367,8 +377,8 @@ std::string ast::RepeatNode::convert(BBlock*& out, GlobalScope& gs) {
 	out->tExit = bodyBlock;
 
 	check()->convert(compareBlock, gs);
-	compareBlock->tExit = bodyBlock;
-	compareBlock->fExit = doneBlock;
+	compareBlock->fExit = bodyBlock;
+	compareBlock->tExit = doneBlock;
 
 	body()->convert(bodyBlock, gs);
 	bodyBlock->tExit = compareBlock;

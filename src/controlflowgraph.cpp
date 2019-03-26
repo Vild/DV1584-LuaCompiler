@@ -62,6 +62,18 @@ GlobalScope::~GlobalScope() {
 		delete next;
 	}
 }
+std::string GlobalScope::addData(const Value& value) {
+	std::string index = std::string("_d") + (char)value.type + "_" + value.str;
+	std::replace_if(index.begin(), index.end(),
+	                [](char ch) { return !isalnum(ch); }, '_');
+	if (data[index].type !=
+	    Value::Type::UNK)  // There is already a constant with this index
+		expect(data[index].str == value.str,
+		       "Two different data generated the same name: " + index +
+		           ", test: '" + data[index].str + "' != '" + value.str + "'");
+	data[index] = value;
+	return index;
+}
 std::string GlobalScope::addConstant(const Value& value) {
 	std::string index = std::string("_c") + (char)value.type + "_" + value.str;
 	std::replace_if(index.begin(), index.end(),
@@ -224,6 +236,9 @@ void ThreeAddr::toASM(std::ostream& out, const BBlock* block) const {
 		case Operation::functionArg:
 			expect(0, "Should never reach this");
 			break;
+	case Operation::setValue:
+		_("call setValueOP");
+		break;
 		default:
 			out << "\t// Unknown op = '" << op << "'!" << std::endl;
 			std::cout << "\x1b[1;31mUnknown op = '" << op << "'!\x1b[0m" << std::endl;

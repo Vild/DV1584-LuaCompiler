@@ -28,7 +28,11 @@ struct Scope {
 struct NIL {};
 struct Function {};
 struct Object {};
-struct Array {};
+struct Array {
+	size_t length;
+	Array() {}
+	Array(size_t length) : length(length) {}
+};
 struct Ref {};
 
 struct Value {
@@ -51,10 +55,10 @@ struct Value {
 	std::string str;  // will also be used to generate the constant name
 	double number;
 	bool boolean;
-	Function* function;
-	Object* object;
-	Array* array;
-	Ref* ref;
+	Function function;
+	Object object;
+	Array array;
+	Ref ref;
 
 	Value() : type(Type::UNK) {}
 	Value(NIL nil) : type(Type::nil), str("NIL") {}
@@ -65,16 +69,17 @@ struct Value {
 	    : type(Type::boolean),
 	      str(boolean ? "true" : "false"),
 	      boolean(boolean) {}
-	Value(Function* function)
+	Value(const Function& function)
 	    : type(Type::function), str("Function"), function(function) {}
-	Value(Object* object) : type(Type::object), str("Object"), object(object) {}
-	Value(Array* array) : type(Type::array), str("Array"), array(array) {}
-	Value(Ref* ref) : type(Type::ref), str("Ref"), ref(ref) {}
+	Value(const Object& object) : type(Type::object), str("Object"), object(object) {}
+	Value(const Array& array) : type(Type::array), str("Array"), array(array) {}
+	Value(const Ref& ref) : type(Type::ref), str("Ref"), ref(ref) {}
 };
 std::ostream& operator<<(std::ostream& out, const Value& value);
 
 struct GlobalScope {
 	std::map<std::string, Value> constants;
+	std::map<std::string, Value> data; // mutable data, will be placed in .data
 	std::vector<std::string> globals;
 	std::vector<std::shared_ptr<Scope>> scopes;
 	std::map<std::string, BBlock*> bblocks;
@@ -82,6 +87,7 @@ struct GlobalScope {
 	GlobalScope();
 	~GlobalScope();
 
+	std::string addData(const Value& value);
 	std::string addConstant(const Value& value);
 	void addGlobal(const std::string& value);
 };
@@ -91,7 +97,7 @@ GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 // clang-format off
 #define enumMembers(o)																						\
 	/* Values (lhs) */																							\
-	o(constant) o(emptyTable) o(preMinus) o(not_) o(pound)					\
+	o(constant) o(emptyTable) o(preMinus) o(not_) o(pound)				\
 																																	\
 	/* Math (lhs & rhs) */																					\
 	o(plus) o(minus) o(mul) o(div) o(pow) o(mod)										\
@@ -101,7 +107,7 @@ GlobalScope getBBlocks(std::shared_ptr<ast::RootNode> root);
 																																	\
 	/* Misc */																											\
 	o(call) o(indexof) o(indexofRef) o(concatTable) o(functionArg)	\
-	o(returnValue)
+	o(returnValue) o(setValue)
 // clang-format off
 
 enum class Operation {

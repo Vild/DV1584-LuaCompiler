@@ -5,6 +5,7 @@
 #include <iostream>
 #include <lua.tab.hpp>
 #include <set>
+#include <expect.hpp>
 
 // syscall numbers __NR_*
 #include <asm/unistd_64.h>
@@ -91,7 +92,12 @@ void toDot(std::ostream& out, GlobalScope& gs) {
 			}
 			out << "}\"];" << std::endl;
 
-			out << name << " -> " << block->name << std::endl;
+			out << name << " -> " << name << "_code_lbl;" << std::endl;
+			out << name
+			    << "_code_lbl[label=\"Code\",shape=ellipse,color=grey,style=filled];"
+			    << std::endl;
+
+			out << name << "_code_lbl -> " << block->name << std::endl;
 		}
 		block->toDot(out);
 	});
@@ -265,6 +271,28 @@ int main(int argc, char** argv) {
 
 		out << std::endl;
 
+		out << "\t.section .data\n";
+		for (const std::pair<std::string, Value>& kv : gs.data) {
+			out << "\t.align 8" << std::endl;
+			out << kv.first << ":" << std::endl;
+			out << "\t.quad '" << (char)kv.second.type << "'" << std::endl;
+			switch (kv.second.type) {
+				case Value::Type::array:
+					expect(kv.second.array.length > 0, "Arrays can not have a size less than 1!");
+					out << "\t.quad 1f" << std::endl;
+					out << "\t\t1: .quad " << kv.second.array.length << std::endl;
+					out << "\t\t\t.quad 0, 0"; // Two quads per variable
+					for (size_t i = 1; i < kv.second.array.length; i++)
+						out << ", 0, 0";
+					break;
+				default:
+					out << " // Not implemented";
+					break;
+			}
+			out << std::endl;
+		}
+		out << std::endl;
+
 		out << "\t.section .rodata\n";
 		for (const std::pair<std::string, Value>& kv : gs.constants) {
 			out << "\t.align 8" << std::endl;
@@ -315,6 +343,10 @@ int main(int argc, char** argv) {
 		       "obj_data_var:\n"
 		       "\t.struct obj_data_var + 8\n"
 		       "obj_data_sizeof:\n"
+		       "\t.struct 0\n"
+		       "arr_size:\n"
+		       "\t.struct arr_size + 8\n"
+		       "arr_data:\n"
 		       "\t.struct 0"
 		    << std::endl;
 	}

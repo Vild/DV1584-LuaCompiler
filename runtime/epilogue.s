@@ -39,6 +39,30 @@ copyOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	retq
 	.size ., .-copyOP
 
+	.global poundOP
+	.type poundOP, %function
+poundOP: // arg1 = rdi, arg2 = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	movq type(%rdi), %rax
+	cmpq $'a', %rax
+	je 1f
+	mov $argIsNotArray, %r8
+	call runtimeError
+1:
+	mov data(%rdi), %rdi
+	mov arr_size(%rdi), %rax
+
+	cvtsi2sd %rax, %xmm0
+
+	movq $'n', type(%rdx)
+	movsd %xmm0, data(%rdx)
+
+	leave
+	retq
+	.size ., .-poundOP
+
 	.global plusOP
 	.type plusOP, %function
 plusOP: // arg1 = rdi, arg2 = rsi, output = rdx
@@ -244,7 +268,7 @@ greaterOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	seta %al
 
 	// Expand a byte to a whole register
-	movzbl %al, %rax
+	movzb %al, %rax
 
 	// Save the result
 	movq %rax, data(%rdx)
@@ -273,7 +297,7 @@ gequalOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	setae %al
 
 	// Expand a byte to a whole register
-	movzbl %al, %rax
+	movzb %al, %rax
 
 	// Save the result
 	movq %rax, data(%rdx)
@@ -289,6 +313,21 @@ equalOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	push %rbp
 	mov %rsp, %rbp
 
+	movq type(%rdi), %rax
+	cmpq type(%rsi), %rax
+	je 1f
+
+	mov $typesAreNotEqual, %r8
+	call runtimeError
+1:
+	cmpq $'n', %rax
+	je .LequalNumber
+	cmpq $'b', %rax
+	je .LequalBool
+
+	mov $varIsNotNumberOrBool, %r8
+	call runtimeError
+.LequalNumber:
 	// Verify %rdi & %rsi
 	call verifyNumber
 
@@ -302,11 +341,31 @@ equalOP: // arg1 = rdi, arg2 = rsi, output = rdx
 	sete %al
 
 	// Expand a byte to a whole register
-	movzbl %al, %rax
+	movzb %al, %rax
 
 	// Save the result
 	movq %rax, data(%rdx)
 	movq $'b', type(%rdx)
+
+	jmp .LequalReturn
+.LequalBool:
+	cmpq $'b', type(%rsi)
+	je 1f
+	mov $varIsNotNumberOrBool, %r8
+	call runtimeError
+1:
+	xor %rcx, %rcx
+
+	mov data(%rdi), %rax
+	cmpq data(%rsi), %rax
+	jne 1f
+	inc %rcx
+1:
+	movq $'b', type(%rdx)
+	movq %rcx, data(%rdx)
+
+	jmp .LequalReturn
+.LequalReturn:
 	leave
 	retq
 	.size ., .-equalOP
@@ -361,6 +420,30 @@ callOP: // function = rdi, arg1 = rsi, output = rdx
 indexofOP: // table = rdi, index = rsi, output = rdx
 	push %rbp
 	mov %rsp, %rbp
+	sub $8, %rsp
+	and $-16, %rsp
+
+	mov %rdx, -8(%rbp)
+
+	call indexofRefOP
+
+	mov -8(%rbp), %rdx
+	mov data(%rdx), %rdi
+
+	mov type(%rdi), %rax
+	mov %rax, type(%rdx)
+	mov data(%rdi), %rax
+	mov %rax, data(%rdx)
+
+	leave
+	retq
+	.size ., .-indexofOP
+
+	.global indexofRefOP
+	.type indexofRefOP, %function
+indexofRefOP: // table = rdi, index = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
 	sub $24, %rsp
 	and $-16, %rsp
 
@@ -373,8 +456,6 @@ indexofOP: // table = rdi, index = rsi, output = rdx
 	mov $argIsNotObjectOrArray, %r8
 	call runtimeError
 .LindexObject:
-	//call *data(%rdi)
-
 	mov type(%rsi), %rax
 	cmpq $'s', %rax
 	je 1f
@@ -414,19 +495,73 @@ indexofOP: // table = rdi, index = rsi, output = rdx
 2:
 	mov obj_data_var(%rdi), %rdi
 
-	movq type(%rdi), %rax
-	movq %rax, type(%rdx)
-	movq data(%rdi), %rax
-	movq %rax, data(%rdx)
+	movq $'r', type(%rdx)
+	mov %rdi, data(%rdx)
 
 	jmp .Lreturn
+
 .LindexArray:
-	mov $argIsNotObjectOrArray, %r8
+	mov type(%rsi), %rax
+	cmpq $'n', %rax
+	je 1f
+	mov $indexIsNotNumber, %r8
 	call runtimeError
+1:
+	mov data(%rdi), %rdi
+
+	// Convert index to integer
+	movsd data(%rsi), %xmm0
+	cvtsd2si %xmm0, %rax
+
+	// Because LUA like to be special and uses indices that start at one,
+	// this is needed to fix that
+	dec %rax
+
+	cmpq obj_size(%rdi), %rax
+	jl 1f
+	mov $indexOutOfRange, %r8
+	call runtimeError
+1:
+	lea arr_data(%rdi), %rdi
+
+	mov %rdx, %r8
+	// rdi = &rdi[16 * rax]
+	mov $2, %r9
+	mulq %r9
+	lea (%rdi, %rax, 8), %rdi
+	mov %r8, %rdx
+
+	movq $'r', type(%rdx)
+	mov %rdi, data(%rdx)
+	jmp .Lreturn
+
 .Lreturn:
 	leave
 	retq
-	.size ., .-indexofOP
+	.size ., .-indexofRefOP
+
+	.global setValueOP
+	.type setValueOP, %function
+setValueOP: // refVar = rdi, value = rsi, output = rdx
+	push %rbp
+	mov %rsp, %rbp
+
+	mov type(%rdi), %rax
+	cmpq $'r', %rax
+	je 1f
+
+	mov $varIsNotRef, %r8
+	call runtimeError
+
+1:
+	mov data(%rdi), %rdx
+	mov %rsi, %rdi
+
+	call copyOP
+
+	leave
+	retq
+	.size ., .-setValueOP
 
 	.global intToStr
 	.type intToStr, %function
@@ -602,8 +737,14 @@ argIsNotString:	.asciz "Argument is not a string!\n"
 argIsNotNumber:	.asciz "Argument is not a number!\n"
 argIsNotFunction: .asciz "Argument is not a function!\n"
 argIsNotObjectOrArray:	 .asciz "Argument is not a object or array!\n"
+argIsNotArray:	 .asciz "Argument is not a array!\n"
 objectMemberMissing: .asciz "Object member could not be found!\n"
-indexIsNotString:	.asciz "Object index is not a string!\n"
+indexIsNotString:	.asciz "Index is not a string!\n"
+indexIsNotNumber:	.asciz "Index is not a number!\n"
+indexOutOfRange:	.asciz "Index is out of range!\n"
+varIsNotRef:		.asciz "Variable is not a reference variable!\n"
+typesAreNotEqual:	 .asciz "Can not compare missmatching types!\n"
+varIsNotNumberOrBool:	 .asciz "Can only compare numbers and booleans\n"
 
 	.bss
 	.global print_buffer
