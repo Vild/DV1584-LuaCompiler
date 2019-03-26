@@ -71,7 +71,8 @@ struct Value {
 	      boolean(boolean) {}
 	Value(const Function& function)
 	    : type(Type::function), str("Function"), function(function) {}
-	Value(const Object& object) : type(Type::object), str("Object"), object(object) {}
+	Value(const Object& object)
+	    : type(Type::object), str("Object"), object(object) {}
 	Value(const Array& array) : type(Type::array), str("Array"), array(array) {}
 	Value(const Ref& ref) : type(Type::ref), str("Ref"), ref(ref) {}
 };
@@ -79,7 +80,7 @@ std::ostream& operator<<(std::ostream& out, const Value& value);
 
 struct GlobalScope {
 	std::map<std::string, Value> constants;
-	std::map<std::string, Value> data; // mutable data, will be placed in .data
+	std::map<std::string, Value> data;  // mutable data, will be placed in .data
 	std::vector<std::string> globals;
 	std::vector<std::shared_ptr<Scope>> scopes;
 	std::map<std::string, BBlock*> bblocks;

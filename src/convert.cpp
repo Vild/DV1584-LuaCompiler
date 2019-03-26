@@ -2,17 +2,17 @@
 
 #include <algorithm>
 #include <ast.hpp>
+#include <cstring>
 #include <expect.hpp>
 #include <string>
-#include <cstring>
 
 #define debug() Debug debug(this->toString().c_str())
 
 static int indent = 0;
 struct Debug {
 	Debug(const char* func) {
-		// scope.print();
-		#if 0
+// scope.print();
+#if 0
 		indent++;
 		for (int i = 0; i < indent; i++)
 		  if (!i)
@@ -20,7 +20,7 @@ struct Debug {
 		  else
 		    std::cout << "  ";
 		std::cout << func << std::endl;
-		#endif
+#endif
 	}
 	~Debug() { indent--; }
 };
@@ -73,10 +73,10 @@ std::string ast::AssignValuesNode::convert(BBlock*& out, GlobalScope& gs) {
 		if (wasIndexOfRef) {
 			std::string tmp2 = out->scope->makeName();
 			out->instructions.push_back(
-				ThreeAddr(tmp2, Operation::setValue, l, tmpVars[i]));
+			    ThreeAddr(tmp2, Operation::setValue, l, tmpVars[i]));
 		} else
 			out->instructions.push_back(
-			ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
+			    ThreeAddr(l, Operation::constant, tmpVars[i], tmpVars[i]));
 		wasIndexOfRef = false;
 		if (l[0] != '_')
 			gs.addGlobal(l);
@@ -205,8 +205,10 @@ std::string ast::IndexOfNode::convert(BBlock*& out, GlobalScope& gs) {
 
 	// If it is not a variable
 	if (std::find(gs.globals.begin(), gs.globals.end(), r) == gs.globals.end() &&
-			std::find(out->scope->variables.begin(), out->scope->variables.end(), r) == out->scope->variables.end() &&
-		strncmp(r.c_str(), out->scope->prefix.c_str(), out->scope->prefix.size()) != 0)
+	    std::find(out->scope->variables.begin(), out->scope->variables.end(),
+	              r) == out->scope->variables.end() &&
+	    strncmp(r.c_str(), out->scope->prefix.c_str(),
+	            out->scope->prefix.size()) != 0)
 		r = gs.addConstant(Value{r});
 
 	std::string tmp = out->scope->makeName();
@@ -241,15 +243,16 @@ std::string ast::TableNode::convert(BBlock*& out, GlobalScope& gs) {
 
 	std::string tbl = gs.addData(Value{Array{children.size()}});
 
-	double index = 1; // Because LUA is a special language
+	double index = 1;  // Because LUA is a special language
 	for (auto& child : children) {
 		auto name = child->convert(out, gs);
 		std::string tmp = out->scope->makeName();
 
-		out->instructions.push_back(ThreeAddr(tmp, Operation::indexofRef, tbl, gs.addConstant(Value{index++})));
+		out->instructions.push_back(ThreeAddr(tmp, Operation::indexofRef, tbl,
+		                                      gs.addConstant(Value{index++})));
 		std::string tmp2 = out->scope->makeName();
 		out->instructions.push_back(
-			ThreeAddr(tmp2, Operation::setValue, tmp, name));
+		    ThreeAddr(tmp2, Operation::setValue, tmp, name));
 	}
 	return tbl;
 }
@@ -294,7 +297,7 @@ std::string ast::NameListNode::convert(BBlock*& out, GlobalScope& gs) {
 std::string ast::VariableRefNode::convert(BBlock*& out, GlobalScope& gs) {
 	debug();
 	if (isToken)
-		return name.value; //gs.addConstant(Value{name.value});
+		return name.value;  // gs.addConstant(Value{name.value});
 	return children[0]->convert(out, gs);
 }
 std::string ast::ForLoopNode::convert(BBlock*& out, GlobalScope& gs) {

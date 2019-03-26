@@ -1,11 +1,11 @@
 /* -*- mode: c++; c-set-style: cc-mode -*- */
 #include <controlflowgraph.hpp>
 #include <cstdlib>
+#include <expect.hpp>
 #include <fstream>
 #include <iostream>
 #include <lua.tab.hpp>
 #include <set>
-#include <expect.hpp>
 
 // syscall numbers __NR_*
 #include <asm/unistd_64.h>
@@ -278,10 +278,11 @@ int main(int argc, char** argv) {
 			out << "\t.quad '" << (char)kv.second.type << "'" << std::endl;
 			switch (kv.second.type) {
 				case Value::Type::array:
-					expect(kv.second.array.length > 0, "Arrays can not have a size less than 1!");
+					expect(kv.second.array.length > 0,
+					       "Arrays can not have a size less than 1!");
 					out << "\t.quad 1f" << std::endl;
 					out << "\t\t1: .quad " << kv.second.array.length << std::endl;
-					out << "\t\t\t.quad 0, 0"; // Two quads per variable
+					out << "\t\t\t.quad 0, 0";  // Two quads per variable
 					for (size_t i = 1; i < kv.second.array.length; i++)
 						out << ", 0, 0";
 					break;

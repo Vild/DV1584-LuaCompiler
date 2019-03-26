@@ -236,9 +236,9 @@ void ThreeAddr::toASM(std::ostream& out, const BBlock* block) const {
 		case Operation::functionArg:
 			expect(0, "Should never reach this");
 			break;
-	case Operation::setValue:
-		_("call setValueOP");
-		break;
+		case Operation::setValue:
+			_("call setValueOP");
+			break;
 		default:
 			out << "\t// Unknown op = '" << op << "'!" << std::endl;
 			std::cout << "\x1b[1;31mUnknown op = '" << op << "'!\x1b[0m" << std::endl;
